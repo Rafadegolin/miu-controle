@@ -6,6 +6,7 @@ import type { Bindings } from "../env";
 import * as templates from "./email-templates";
 import type { Mailer } from "./mailer";
 import { hashPassword, verifyPassword } from "./password";
+import { seedDefaultCategories } from "./user-data";
 
 type Deps = {
   env: Bindings;
@@ -52,6 +53,17 @@ export function createAuth({ env, db, mailer, defer }: Deps) {
       env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET
         ? { google: { clientId: env.GOOGLE_CLIENT_ID, clientSecret: env.GOOGLE_CLIENT_SECRET } }
         : {},
+
+    databaseHooks: {
+      user: {
+        create: {
+          // Todo usuário novo já nasce com as categorias padrão.
+          after: async (user) => {
+            await seedDefaultCategories(db, user.id);
+          },
+        },
+      },
+    },
 
     session: {
       expiresIn: 30 * DAY,

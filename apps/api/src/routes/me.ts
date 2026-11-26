@@ -1,22 +1,12 @@
-import { type Db, eq, schema } from "@miu/db";
+import { eq, schema } from "@miu/db";
 import { type Me, updateMeSchema } from "@miu/shared";
 import { Hono } from "hono";
 import type { App, SessionUser } from "../env";
+import { getSettings } from "../lib/user-data";
 import { valid } from "../lib/validate";
 import { requireUser } from "../middleware/auth";
 
 const { user, userSettings } = schema;
-
-/** Lê as configurações, criando a linha padrão no primeiro acesso. */
-async function getSettings(db: Db, userId: string) {
-  const [row] = await db
-    .insert(userSettings)
-    .values({ userId })
-    .onConflictDoUpdate({ target: userSettings.userId, set: { userId } })
-    .returning();
-  if (!row) throw new Error("user_settings não retornou linha");
-  return row;
-}
 
 function toMe(u: SessionUser, s: Awaited<ReturnType<typeof getSettings>>): Me {
   return {

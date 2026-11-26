@@ -1,17 +1,21 @@
 import type { Me } from "@miu/shared";
 import { Link, useRouterState } from "@tanstack/react-router";
-import { Home, type LucideIcon, Monitor, Moon, Settings, Sun } from "lucide-react";
+import { Home, List, type LucideIcon, Monitor, Moon, Plus, Settings, Sun, Wallet } from "lucide-react";
 import { type ReactNode, useState } from "react";
 import { cn } from "@/lib/cn";
 import { getTheme, setTheme, type Theme } from "@/lib/theme";
+import { QuickAddProvider, useQuickAdd } from "./quick-add";
+import { Toaster } from "./toast";
 import { Logo } from "./ui";
 
-type NavItem = { to: string; label: string; icon: LucideIcon; section?: string };
+type NavItem = { to: string; label: string; icon: LucideIcon; section?: string; mobile?: boolean };
 
-/** Itens entram aqui conforme cada fase fica pronta (contas, cartões, recorrentes, orçamentos…). */
+/** Itens entram aqui conforme cada fase fica pronta (cartões, recorrentes, orçamentos…). */
 export const NAV: NavItem[] = [
-  { to: "/", label: "Início", icon: Home },
-  { to: "/configuracoes", label: "Configurações", icon: Settings, section: "Conta" },
+  { to: "/", label: "Início", icon: Home, mobile: true },
+  { to: "/lancamentos", label: "Lançamentos", icon: List, mobile: true },
+  { to: "/contas", label: "Contas", icon: Wallet, section: "Dinheiro", mobile: true },
+  { to: "/configuracoes", label: "Configurações", icon: Settings, section: "Conta", mobile: true },
 ];
 
 const THEME_NEXT: Record<Theme, Theme> = { system: "light", light: "dark", dark: "system" };
@@ -54,8 +58,20 @@ function initials(name: string) {
 }
 
 export function AppShell({ me, children }: { me: Me; children: ReactNode }) {
+  return (
+    <QuickAddProvider>
+      <Shell me={me}>{children}</Shell>
+      <Toaster />
+    </QuickAddProvider>
+  );
+}
+
+function Shell({ me, children }: { me: Me; children: ReactNode }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const current = NAV.find((n) => (n.to === "/" ? pathname === "/" : pathname.startsWith(n.to)));
+  const { openNew } = useQuickAdd();
+  const mobile = NAV.filter((n) => n.mobile);
+  const half = Math.ceil(mobile.length / 2);
   let lastSection: string | undefined;
 
   return (
@@ -98,12 +114,22 @@ export function AppShell({ me, children }: { me: Me; children: ReactNode }) {
       <div className="min-w-0">
         <header className="sticky top-0 z-20 border-b border-line bg-bg/90 backdrop-blur-md">
           <div className="mx-auto flex h-16 max-w-[1180px] items-center gap-3 px-4 sm:px-6">
-            <Link to="/" className="flex items-center gap-2 font-semibold lg:hidden">
+            <Link to="/" className="flex items-center gap-2 font-semibold lg:hidden" aria-label="Início">
               <Logo />
             </Link>
             <h1 className="text-[19px] font-semibold tracking-tight">{current?.label}</h1>
             <div className="ml-auto flex items-center gap-2">
               <ThemeToggle className="lg:hidden" />
+              <button
+                type="button"
+                onClick={() => openNew()}
+                className="hidden h-10 items-center gap-2 rounded-control bg-accent-fill px-4 font-medium text-on-accent hover:brightness-105 lg:inline-flex"
+              >
+                <Plus className="size-[18px]" aria-hidden /> Novo lançamento
+                <kbd className="rounded border border-on-accent/30 px-1.5 font-mono text-[11px] opacity-75">
+                  N
+                </kbd>
+              </button>
             </div>
           </div>
         </header>
@@ -113,29 +139,45 @@ export function AppShell({ me, children }: { me: Me; children: ReactNode }) {
       </div>
 
       <nav
-        className="fixed inset-x-0 bottom-0 z-25 grid grid-cols-2 border-t border-line bg-surface px-2 pt-1.5 pb-[calc(6px+env(safe-area-inset-bottom))] lg:hidden"
+        className="fixed inset-x-0 bottom-0 z-25 grid border-t border-line bg-surface px-2 pt-1.5 pb-[calc(6px+env(safe-area-inset-bottom))] lg:hidden"
+        style={{ gridTemplateColumns: `repeat(${mobile.length + 1}, minmax(0, 1fr))` }}
         aria-label="Principal"
       >
-        {NAV.slice(0, 4).map((item) => {
-          const Icon = item.icon;
-          const active = item === current;
-          return (
-            <Link
-              key={item.to}
-              to={item.to}
-              aria-current={active ? "page" : undefined}
-              className={cn(
-                "flex h-[52px] flex-col items-center justify-center gap-0.5 text-[11px] font-medium",
-                active ? "text-accent" : "text-muted",
-              )}
-            >
-              <Icon className="size-5" aria-hidden />
-              {item.label}
-            </Link>
-          );
-        })}
+        {mobile.slice(0, half).map((item) => (
+          <MobileLink key={item.to} item={item} active={item === current} />
+        ))}
+        <button
+          type="button"
+          onClick={() => openNew()}
+          aria-label="Novo lançamento"
+          className="flex h-[52px] items-center justify-center"
+        >
+          <span className="-mt-3.5 grid size-12 place-items-center rounded-2xl bg-accent-fill text-on-accent shadow-lg">
+            <Plus className="size-[22px]" strokeWidth={2.2} aria-hidden />
+          </span>
+        </button>
+        {mobile.slice(half).map((item) => (
+          <MobileLink key={item.to} item={item} active={item === current} />
+        ))}
       </nav>
     </div>
+  );
+}
+
+function MobileLink({ item, active }: { item: NavItem; active: boolean }) {
+  const Icon = item.icon;
+  return (
+    <Link
+      to={item.to}
+      aria-current={active ? "page" : undefined}
+      className={cn(
+        "flex h-[52px] flex-col items-center justify-center gap-0.5 text-[11px] font-medium",
+        active ? "text-accent" : "text-muted",
+      )}
+    >
+      <Icon className="size-5" aria-hidden />
+      {item.label}
+    </Link>
   );
 }
 

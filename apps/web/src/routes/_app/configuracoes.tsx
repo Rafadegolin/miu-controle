@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient, useSuspenseQuery } from "@tansta
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { LogOut, Monitor, Moon, Smartphone, Sun } from "lucide-react";
 import { type FormEvent, useState } from "react";
+import { CategoriesManager } from "@/components/categories-manager";
 import { Alert, Button, Card, Field, Input } from "@/components/ui";
 import { authClient } from "@/lib/auth-client";
 import { cn } from "@/lib/cn";
@@ -19,6 +20,7 @@ function Configuracoes() {
     <div className="grid gap-4 lg:grid-cols-2">
       <Perfil />
       <Aparencia />
+      <CategoriesManager />
       <Sessoes />
       <Card className="flex flex-col gap-3 p-5">
         <h3 className="font-semibold">Sair</h3>

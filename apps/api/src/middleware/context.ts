@@ -14,7 +14,10 @@ export type Deps = {
 export const defaultDeps: Deps = {
   openDb: (env) => {
     if (!env.HYPERDRIVE) throw new HttpError(503, "banco_indisponivel", "Banco de dados não configurado.");
-    return createDb(env.HYPERDRIVE.connectionString);
+    // Em dev o banco pode ser o PGlite local (processo único): uma conexão por request evita travar.
+    return createDb(env.HYPERDRIVE.connectionString, {
+      maxConnections: env.APP_ENV === "development" ? 1 : 5,
+    });
   },
   mailer: mailerFor,
 };
