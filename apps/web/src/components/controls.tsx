@@ -161,6 +161,7 @@ export function AmountInput({
         autoComplete="off"
         // biome-ignore lint/a11y/noAutofocus: o valor é o primeiro campo do lançamento rápido
         autoFocus={autoFocus}
+        data-autofocus={autoFocus || undefined}
         value={text}
         onChange={(e) => {
           const digits = e.target.value.replace(/\D/g, "").slice(0, 12);

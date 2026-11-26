@@ -403,6 +403,7 @@ function TransactionForm({
             />
             <input
               ref={quickRef}
+              data-autofocus
               value={quick}
               onChange={(e) => applyQuick(e.target.value)}
               // biome-ignore lint/a11y/noAutofocus: lançar rápido começa por aqui

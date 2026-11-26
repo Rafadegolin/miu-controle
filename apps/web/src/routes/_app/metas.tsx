@@ -182,6 +182,7 @@ function GoalCard({ goal: g, onEdit }: { goal: Goal; onEdit: () => void }) {
             <input
               // biome-ignore lint/a11y/noAutofocus: abre direto no valor ao tocar em Aportar/Retirar
               autoFocus
+              data-autofocus
               inputMode="decimal"
               placeholder="0,00"
               aria-label={mode === "in" ? "Valor do aporte" : "Valor da retirada"}
