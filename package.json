@@ -1,0 +1,28 @@
+{
+  "name": "miu-controle",
+  "private": true,
+  "packageManager": "pnpm@10.34.9",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "lint": "biome check",
+    "format": "biome format --write",
+    "check": "biome check && turbo run typecheck test build",
+    "deploy": "turbo run build --filter=@miu/web && pnpm --filter @miu/api run deploy",
+    "db:generate": "pnpm --filter @miu/db run generate",
+    "db:migrate": "pnpm --filter @miu/db run migrate",
+    "db:local": "pnpm --filter @miu/db run local"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.6.9",
+    "@miu/tsconfig": "workspace:*",
+    "turbo": "^2.11.13",
+    "typescript": "^7.0.2",
+    "vitest": "^5.1.2"
+  }
+}

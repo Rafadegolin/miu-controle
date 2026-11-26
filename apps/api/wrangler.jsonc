@@ -1,0 +1,35 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "miu-controle",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-11-01",
+  "compatibility_flags": ["nodejs_compat"],
+
+  // Um único Worker: /api/* cai no Hono, o resto é servido direto dos assets da SPA (apps/web/dist).
+  "assets": {
+    "directory": "../web/dist",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/api/*"]
+  },
+
+  // Roda o Worker perto do Neon (São Paulo), não perto do usuário: cada request faz várias queries.
+  "placement": { "mode": "smart" },
+
+  "observability": { "enabled": true },
+
+  "version_metadata": { "binding": "CF_VERSION_METADATA" },
+
+  // Neon via Hyperdrive (pool + cache de leitura). Em dev local a conexão vem de
+  // CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE no arquivo apps/api/.env
+  "hyperdrive": [
+    {
+      "binding": "HYPERDRIVE",
+      "id": "PREENCHER_COM_ID_DO_HYPERDRIVE"
+    }
+  ],
+
+  "vars": {
+    "APP_ENV": "production"
+  }
+}

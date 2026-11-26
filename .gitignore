@@ -1,0 +1,13 @@
+node_modules/
+dist/
+.turbo/
+.wrangler/
+*.tsbuildinfo
+.env
+.env.*
+!.env.example
+.dev.vars
+*.log
+.DS_Store
+apps/web/src/routeTree.gen.ts
+.pglite/

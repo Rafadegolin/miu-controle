@@ -1,0 +1,118 @@
+@import "tailwindcss";
+
+/*
+ * Tokens do Miu Controle (direção "fintech clean", vindos do protótipo).
+ * Componentes usam SÓ estes tokens via classes do Tailwind (bg-surface, text-muted...).
+ * Nada de cor hex em componente.
+ */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+@theme {
+  --font-sans: "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-mono: "Geist Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-fg: var(--fg);
+  --color-fg-2: var(--fg-2);
+  --color-muted: var(--muted);
+  --color-faint: var(--faint);
+  --color-accent: var(--accent);
+  --color-accent-fill: var(--accent-fill);
+  --color-on-accent: var(--on-accent);
+  --color-accent-soft: var(--accent-soft);
+  --color-warn: var(--warn);
+  --color-warn-soft: var(--warn-soft);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+
+  --radius-card: 14px;
+  --radius-control: 10px;
+}
+
+:root {
+  --bg: #f5f7f6;
+  --surface: #ffffff;
+  --surface-2: #eef2f0;
+  --line: #e1e7e4;
+  --line-strong: #cdd6d2;
+  --fg: #0b1412;
+  --fg-2: #33413d;
+  --muted: #63716c;
+  --faint: #97a39f;
+  --accent: #0b9670;
+  --accent-fill: #32d6a5;
+  --on-accent: #032219;
+  --accent-soft: #ddf5ec;
+  --warn: #a85d06;
+  --warn-soft: #fcefd9;
+  --danger: #cc3439;
+  --danger-soft: #fce4e4;
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #080b0b;
+    --surface: #0f1413;
+    --surface-2: #151b1a;
+    --line: #1e2725;
+    --line-strong: #2b3633;
+    --fg: #ecf2f0;
+    --fg-2: #c1ccc8;
+    --muted: #88958f;
+    --faint: #5c6965;
+    --accent: #32d6a5;
+    --accent-soft: #0e2a22;
+    --warn: #f0a63a;
+    --warn-soft: #2a1f0d;
+    --danger: #ff6f6f;
+    --danger-soft: #2c1415;
+    color-scheme: dark;
+  }
+}
+
+:root[data-theme="dark"] {
+  --bg: #080b0b;
+  --surface: #0f1413;
+  --surface-2: #151b1a;
+  --line: #1e2725;
+  --line-strong: #2b3633;
+  --fg: #ecf2f0;
+  --fg-2: #c1ccc8;
+  --muted: #88958f;
+  --faint: #5c6965;
+  --accent: #32d6a5;
+  --accent-soft: #0e2a22;
+  --warn: #f0a63a;
+  --warn-soft: #2a1f0d;
+  --danger: #ff6f6f;
+  --danger-soft: #2c1415;
+  color-scheme: dark;
+}
+
+@layer base {
+  body {
+    @apply bg-bg text-fg font-sans antialiased;
+    font-size: 15px;
+    line-height: 1.5;
+  }
+  h1,
+  h2,
+  h3 {
+    text-wrap: balance;
+    letter-spacing: -0.02em;
+  }
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+}
+
+@utility num {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
