@@ -1,5 +1,6 @@
 export * from "./dates";
 export * from "./import";
+export * from "./insights";
 export * from "./installments";
 export * from "./money";
 export * from "./planning";

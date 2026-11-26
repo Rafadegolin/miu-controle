@@ -18,6 +18,7 @@ import type {
   ImportPreview,
   ImportResult,
   MonthSummary,
+  Pace,
   PreviewImport,
   RecurringRule,
   Statement,
@@ -108,6 +109,7 @@ export function invalidateMoney(queryClient: QueryClient) {
     queryClient.invalidateQueries({ queryKey: ["dashboard"] }),
     queryClient.invalidateQueries({ queryKey: ["reports"] }),
     queryClient.invalidateQueries({ queryKey: ["import-batches"] }),
+    queryClient.invalidateQueries({ queryKey: ["pace"] }),
   ]);
 }
 
@@ -257,3 +259,10 @@ export function exportUrl(from?: string, to?: string) {
   const q = qs.toString();
   return `/api/export/transactions.csv${q ? `?${q}` : ""}`;
 }
+
+export const paceQuery = (month?: string) =>
+  queryOptions({
+    queryKey: ["pace", month ?? "atual"],
+    queryFn: async () => readJson<Pace>(await api.insights.pace.$get({ query: month ? { month } : {} })),
+    staleTime: 30_000,
+  });

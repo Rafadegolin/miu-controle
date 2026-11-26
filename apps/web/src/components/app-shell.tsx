@@ -128,13 +128,16 @@ function Shell({ me, children }: { me: Me; children: ReactNode }) {
     <div className="grid min-h-dvh lg:grid-cols-[264px_minmax(0,1fr)]">
       {/* Barra lateral (desktop) */}
       <aside className="sticky top-0 hidden h-dvh flex-col border-r border-line bg-surface px-4 py-6 lg:flex">
-        <div className="flex items-center justify-between px-2 pb-6">
+        <div className="flex items-center justify-between px-2 pb-5">
           <Link to="/" aria-label="Visão geral">
             <Wordmark />
           </Link>
           <PrivacyToggle />
         </div>
-        <nav className="flex flex-1 flex-col gap-5 overflow-y-auto" aria-label="Principal">
+        <nav
+          className="scroll-hover -mr-2 flex flex-1 flex-col gap-4 overflow-y-auto pr-2"
+          aria-label="Principal"
+        >
           {sections.map((section) => (
             <div key={section} className="flex flex-col gap-0.5">
               <p className="px-3 pb-1.5 text-[13px] text-faint">{section}</p>
@@ -262,7 +265,7 @@ function NavLink({ item, active }: { item: NavItem; active: boolean }) {
       to={item.to}
       aria-current={active ? "page" : undefined}
       className={cn(
-        "flex h-11 items-center gap-3 rounded-[12px] px-3 text-[15px] transition",
+        "flex h-10 items-center gap-3 rounded-[12px] px-3 text-[15px] transition",
         active ? "bg-accent-soft font-medium text-fg" : "text-fg-2 hover:bg-surface-2 hover:text-fg",
       )}
     >

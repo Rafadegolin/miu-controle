@@ -17,7 +17,7 @@ import { valid } from "../lib/validate";
 import { requireUser } from "../middleware/auth";
 import { toTransactionDto } from "./transactions";
 
-const { accounts, transactions } = schema;
+const { accounts, transactions, goals } = schema;
 const UPCOMING_DAYS = 15;
 
 const monthEndOf = (month: string) => makeDate(Number(month.slice(0, 4)), Number(month.slice(5, 7)), 31);
@@ -37,7 +37,8 @@ export const dashboardRoutes = new Hono<App>()
     // biome-ignore lint/complexity/useMathMinMax: comparação de datas ISO (strings)
     const plannedUntil = horizon > monthEnd ? horizon : monthEnd;
 
-    const [accountRows, balances, totals, byCat, planned, recent] = await Promise.all([
+    const prevFrom = monthToDate(addYearMonth(month, -1));
+    const [accountRows, balances, totals, byCat, planned, recent, prevTotals, goalRows] = await Promise.all([
       db.select().from(accounts).where(eq(accounts.userId, userId)),
       accountBalances(db, userId),
       db
@@ -94,6 +95,30 @@ export const dashboardRoutes = new Hono<App>()
         )
         .orderBy(desc(transactions.date), desc(transactions.createdAt))
         .limit(6),
+      db
+        .select({ kind: transactions.kind, total: sql<string>`sum(${transactions.amountCents})` })
+        .from(transactions)
+        .where(
+          and(
+            eq(transactions.userId, userId),
+            gte(transactions.date, prevFrom),
+            lt(transactions.date, from),
+            sql`${transactions.kind} <> 'transfer'`,
+          ),
+        )
+        .groupBy(transactions.kind),
+      db
+        .select({
+          id: goals.id,
+          name: goals.name,
+          color: goals.color,
+          targetCents: goals.targetCents,
+          targetDate: goals.targetDate,
+          // Colunas qualificadas à mão: dentro de subconsulta o Drizzle não prefixa a tabela.
+          saved: sql<string>`coalesce((select sum(gc.amount_cents) from goal_contributions gc where gc.goal_id = goals.id), 0)`,
+        })
+        .from(goals)
+        .where(and(eq(goals.userId, userId), sql`${goals.archivedAt} is null`)),
     ]);
 
     const active = accountRows.filter((a) => !a.archivedAt);
@@ -164,7 +189,12 @@ export const dashboardRoutes = new Hono<App>()
         expensePostedCents: sum("expense", "posted"),
         expensePlannedCents: sum("expense", "planned"),
       },
+      previousTotals: {
+        incomeCents: Number(prevTotals.find((r) => r.kind === "income")?.total ?? 0),
+        expenseCents: Number(prevTotals.find((r) => r.kind === "expense")?.total ?? 0),
+      },
       topCategories: byCat.map((r) => ({ categoryId: r.categoryId, totalCents: Number(r.total) })),
+      goalHighlight: pickGoal(goalRows),
       cards,
       upcoming: upcoming.slice(0, 12),
       recent: recent.map(toTransactionDto),
@@ -247,3 +277,31 @@ export const reportsRoutes = new Hono<App>()
     };
     return c.json(body);
   });
+
+/** Meta ativa ainda não concluída mais perto do fim (maior progresso). */
+function pickGoal(
+  rows: {
+    id: string;
+    name: string;
+    color: string;
+    targetCents: number;
+    targetDate: string | null;
+    saved: string;
+  }[],
+): Dashboard["goalHighlight"] {
+  const open = rows
+    .map((g) => ({ ...g, savedCents: Number(g.saved) }))
+    .filter((g) => g.savedCents < g.targetCents)
+    .sort((a, b) => b.savedCents / b.targetCents - a.savedCents / a.targetCents);
+  const g = open[0] ?? null;
+  return g
+    ? {
+        id: g.id,
+        name: g.name,
+        color: g.color,
+        savedCents: g.savedCents,
+        targetCents: g.targetCents,
+        targetDate: g.targetDate,
+      }
+    : null;
+}

@@ -20,6 +20,7 @@ function toMe(u: SessionUser, s: Awaited<ReturnType<typeof getSettings>>): Me {
       monthlyIncomeCents: s.monthlyIncomeCents,
       onboardingCompleted: s.onboardingCompletedAt !== null,
       emailAlerts: s.emailAlerts,
+      monthlySpendingLimitCents: s.monthlySpendingLimitCents,
     },
   };
 }
@@ -44,6 +45,8 @@ export const me = new Hono<App>()
     if (body.monthlyIncomeCents !== undefined) patch.monthlyIncomeCents = body.monthlyIncomeCents;
     if (body.timezone !== undefined) patch.timezone = body.timezone;
     if (body.emailAlerts !== undefined) patch.emailAlerts = body.emailAlerts;
+    if (body.monthlySpendingLimitCents !== undefined)
+      patch.monthlySpendingLimitCents = body.monthlySpendingLimitCents;
     if (Object.keys(patch).length)
       await db.update(userSettings).set(patch).where(eq(userSettings.userId, u.id));
 

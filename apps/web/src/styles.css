@@ -184,3 +184,35 @@ html[data-privacy="on"] .num-display {
     transform: none;
   }
 }
+
+/* Barras de rolagem finas e discretas em todo o app; no menu lateral só aparecem ao passar o mouse. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--line-strong) transparent;
+}
+*::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+*::-webkit-scrollbar-thumb {
+  background: var(--line-strong);
+  border-radius: 999px;
+}
+*::-webkit-scrollbar-button {
+  display: none;
+}
+.scroll-hover {
+  scrollbar-color: transparent transparent;
+}
+.scroll-hover:hover {
+  scrollbar-color: var(--line-strong) transparent;
+}
+.scroll-hover::-webkit-scrollbar-thumb {
+  background: transparent;
+}
+.scroll-hover:hover::-webkit-scrollbar-thumb {
+  background: var(--line-strong);
+}

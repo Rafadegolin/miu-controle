@@ -13,6 +13,7 @@ import { dashboardRoutes, reportsRoutes } from "./routes/dashboard";
 import { goalsRoutes } from "./routes/goals";
 import { health } from "./routes/health";
 import { exportRoutes, importRoutes } from "./routes/imports";
+import { insightsRoutes } from "./routes/insights";
 import { me } from "./routes/me";
 import { recurringRoutes } from "./routes/recurring";
 import { transactionsRoutes } from "./routes/transactions";
@@ -42,7 +43,8 @@ export function createApp(deps: Deps = defaultDeps) {
     .route("/dashboard", dashboardRoutes)
     .route("/reports", reportsRoutes)
     .route("/import", importRoutes)
-    .route("/export", exportRoutes);
+    .route("/export", exportRoutes)
+    .route("/insights", insightsRoutes);
 
   app.notFound(notFound);
   app.onError(onError);

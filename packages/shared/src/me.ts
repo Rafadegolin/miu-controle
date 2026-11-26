@@ -12,6 +12,13 @@ export const updateMeSchema = z
       .optional(),
     timezone: z.string().min(1).max(64).optional(),
     emailAlerts: z.boolean().optional(),
+    monthlySpendingLimitCents: z
+      .number()
+      .int()
+      .positive("O limite precisa ser maior que zero.")
+      .max(100_000_000_00)
+      .nullable()
+      .optional(),
   })
   .strict();
 
@@ -28,5 +35,6 @@ export type Me = {
     monthlyIncomeCents: number | null;
     onboardingCompleted: boolean;
     emailAlerts: boolean;
+    monthlySpendingLimitCents: number | null;
   };
 };

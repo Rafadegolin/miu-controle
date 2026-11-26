@@ -43,6 +43,13 @@
       "when": 1795707170419,
       "tag": "0005_alerts",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1795713088158,
+      "tag": "0006_spending_limit",
+      "breakpoints": true
     }
   ]
 }

@@ -1,0 +1,1 @@
+ALTER TABLE "user_settings" ADD COLUMN "monthly_spending_limit_cents" bigint;

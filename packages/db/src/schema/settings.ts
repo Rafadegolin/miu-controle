@@ -10,6 +10,8 @@ export const userSettings = pgTable("user_settings", {
   currency: text().notNull().default("BRL"),
   /** Renda mensal aproximada, opcional; só para sugerir orçamentos. */
   monthlyIncomeCents: bigint({ mode: "number" }),
+  /** Limite de gastos do mês (todas as despesas). Opcional; alimenta o "ritmo de gastos". */
+  monthlySpendingLimitCents: bigint({ mode: "number" }),
   /** Avisos por e-mail (orçamento perto do limite, fatura vencendo). */
   emailAlerts: boolean().notNull().default(true),
   onboardingCompletedAt: timestamp({ withTimezone: true }),
