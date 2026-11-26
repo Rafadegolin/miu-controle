@@ -123,6 +123,24 @@ export const recurringRules = pgTable(
   ],
 );
 
+/** Uma importação de extrato (para listar e poder desfazer de uma vez). */
+export const importBatches = pgTable(
+  "import_batches",
+  {
+    id: text().primaryKey(),
+    userId: text()
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    accountId: text()
+      .notNull()
+      .references(() => accounts.id, { onDelete: "cascade" }),
+    fileName: text().notNull(),
+    rowCount: integer().notNull(),
+    createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index().on(t.userId, t.createdAt)],
+);
+
 export const transactions = pgTable(
   "transactions",
   {
@@ -151,7 +169,7 @@ export const transactions = pgTable(
     installmentTotal: integer(),
     // Recorrência (Fase 4) e importação (Fase 7)
     recurringRuleId: text().references(() => recurringRules.id, { onDelete: "set null" }),
-    importBatchId: text(),
+    importBatchId: text().references(() => importBatches.id, { onDelete: "set null" }),
     importFitid: text(),
     ...timestamps,
   },
@@ -160,6 +178,11 @@ export const transactions = pgTable(
     index("transactions_account_date_idx").on(t.accountId, t.date),
     index("transactions_to_account_idx").on(t.toAccountId).where(sql`${t.toAccountId} is not null`),
     index("transactions_category_idx").on(t.userId, t.categoryId, t.date),
+    // O mesmo lançamento do banco (FITID do OFX) nunca entra duas vezes na mesma conta.
+    uniqueIndex("transactions_account_fitid_uq")
+      .on(t.accountId, t.importFitid)
+      .where(sql`${t.importFitid} is not null`),
+    index("transactions_import_batch_idx").on(t.importBatchId).where(sql`${t.importBatchId} is not null`),
     // Uma ocorrência por regra por dia: gerar de novo nunca duplica.
     uniqueIndex("transactions_rule_date_uq")
       .on(t.recurringRuleId, t.date)

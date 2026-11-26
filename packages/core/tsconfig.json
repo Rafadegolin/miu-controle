@@ -1,4 +1,8 @@
 {
   "extends": "@miu/tsconfig/base.json",
+  "compilerOptions": {
+    // TextDecoder/TextEncoder (existem no navegador, no Workers e no Node)
+    "lib": ["ES2022", "DOM"]
+  },
   "include": ["src"]
 }

@@ -206,6 +206,8 @@ const incomeOrExpense = z.object({
   status: z.enum(["posted", "planned"]).default("posted"),
   /** Só despesa no cartão: divide o valor total em N parcelas, uma por fatura. */
   installments: z.number().int().min(2, "Mínimo de 2 parcelas.").max(48, "Máximo de 48 parcelas.").optional(),
+  /** Compra antiga: quantas parcelas já foram pagas (não são criadas). Para cadastrar dívida que já existe. */
+  installmentsPaid: z.number().int().min(0).max(47).optional(),
 });
 
 const transfer = z.object({

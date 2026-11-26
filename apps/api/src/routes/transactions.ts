@@ -249,12 +249,17 @@ export const transactionsRoutes = new Hono<App>()
         );
       }
       const groupId = crypto.randomUUID();
+      const paid = body.installmentsPaid ?? 0;
+      if (paid >= body.installments) {
+        throw new HttpError(400, "parcelamento_invalido", "Ao menos uma parcela precisa estar em aberto.");
+      }
+      // Compra antiga: as parcelas já pagas não são criadas (nem pesam nas faturas passadas).
       const plan = planInstallments({
         totalCents: body.amountCents,
         count: body.installments,
         purchaseDate: body.date,
         closingDay: account.closingDay ?? 1,
-      });
+      }).filter((p) => p.no > paid);
       // A compra já aconteceu: todas as parcelas ficam como realizadas (o limite já foi usado).
       const rows = await db
         .insert(transactions)
@@ -273,7 +278,7 @@ export const transactionsRoutes = new Hono<App>()
           })),
         )
         .returning();
-      const first = rows.find((r) => r.installmentNo === 1);
+      const first = rows.find((r) => r.installmentNo === paid + 1);
       if (!first) throw new Error("insert parcelas");
       return c.json(toTransactionDto(first), 201);
     }

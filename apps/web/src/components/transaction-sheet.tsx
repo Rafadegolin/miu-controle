@@ -30,6 +30,8 @@ export type Draft = {
   description: string;
   planned: boolean;
   installments: number;
+  /** Compra antiga: parcelas já pagas (não são criadas). */
+  installmentsPaid?: number;
   /** Criar como recorrência mensal a partir desta data. */
   repeat?: boolean;
   /** Pagamento de fatura: qual fatura (YYYY-MM). */
@@ -179,7 +181,9 @@ function TransactionForm({
         date: d.date,
         description,
         status,
-        ...(parcelado ? { installments: d.installments } : {}),
+        ...(parcelado
+          ? { installments: d.installments, installmentsPaid: oldPurchase ? (d.installmentsPaid ?? 0) : 0 }
+          : {}),
       });
     },
     onSuccess: (tx) =>
@@ -225,6 +229,11 @@ function TransactionForm({
           return `Entra na fatura de ${monthName(m)} (fecha dia ${account.card.closingDay}).`;
         })()
       : null;
+  // Compra cuja primeira parcela caiu numa fatura que já passou: provavelmente dívida antiga.
+  const oldPurchase =
+    parcelado && account?.card
+      ? statementMonthFor(d.date, account.card.closingDay) < statementMonthFor(today, account.card.closingDay)
+      : false;
   const plan =
     parcelado && account?.card && d.cents > 0
       ? planInstallments({
@@ -232,7 +241,7 @@ function TransactionForm({
           count: d.installments,
           purchaseDate: d.date,
           closingDay: account.card.closingDay,
-        })
+        }).filter((p) => p.no > (oldPurchase ? (d.installmentsPaid ?? 0) : 0))
       : null;
 
   return (
@@ -355,11 +364,34 @@ function TransactionForm({
               )}
             </Field>
           ) : null}
-          {plan && plan.length > 1 ? (
+          {oldPurchase ? (
+            <Field
+              label="Parcelas já pagas"
+              hint="Compra antiga: só as parcelas que faltam entram nas faturas."
+            >
+              {(p) => (
+                <select
+                  {...p}
+                  value={d.installmentsPaid ?? 0}
+                  onChange={(e) => set({ installmentsPaid: Number(e.target.value) })}
+                  className="h-[42px] w-full rounded-control border border-line-strong bg-surface px-3"
+                >
+                  {Array.from({ length: d.installments }, (_, i) => i).map((n) => (
+                    <option key={n} value={n}>
+                      {n === 0 ? "Nenhuma" : `${n} de ${d.installments}`}
+                    </option>
+                  ))}
+                </select>
+              )}
+            </Field>
+          ) : null}
+          {plan && plan.length > 0 ? (
             <div className="rounded-xl border border-line bg-surface-2 px-3.5 py-3 text-[13.5px] text-fg-2">
-              {plan.length}x de <b className="num text-fg">{money(plan[1]?.amountCents ?? 0)}</b>
-              {plan[0]?.amountCents !== plan[1]?.amountCents
-                ? ` (1ª de ${money(plan[0]?.amountCents ?? 0)})`
+              {plan.length}
+              {plan.length < d.installments ? " parcelas restantes" : "x"} de{" "}
+              <b className="num text-fg">{money(plan.at(-1)?.amountCents ?? 0)}</b>
+              {plan[0] && plan[0].no === 1 && plan[0].amountCents !== plan.at(-1)?.amountCents
+                ? ` (1ª de ${money(plan[0].amountCents)})`
                 : ""}{" "}
               · da fatura de {monthName(plan[0]?.statementMonth ?? "")} até{" "}
               {monthShort(plan.at(-1)?.statementMonth ?? "")}

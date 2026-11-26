@@ -5,6 +5,7 @@ import type {
   CashflowMonth,
   Category,
   CategoryReport,
+  ConfirmImport,
   CreateAccount,
   CreateCategory,
   CreateGoal,
@@ -13,7 +14,11 @@ import type {
   Dashboard,
   Goal,
   GoalContribution,
+  ImportBatch,
+  ImportPreview,
+  ImportResult,
   MonthSummary,
+  PreviewImport,
   RecurringRule,
   Statement,
   Transaction,
@@ -102,6 +107,7 @@ export function invalidateMoney(queryClient: QueryClient) {
     queryClient.invalidateQueries({ queryKey: ["budgets"] }),
     queryClient.invalidateQueries({ queryKey: ["dashboard"] }),
     queryClient.invalidateQueries({ queryKey: ["reports"] }),
+    queryClient.invalidateQueries({ queryKey: ["import-batches"] }),
   ]);
 }
 
@@ -229,3 +235,25 @@ export const categoryReportQuery = (month: string) =>
     queryFn: async () => readJson<CategoryReport>(await api.reports.categories.$get({ query: { month } })),
     staleTime: 60_000,
   });
+
+/* ---------- importação e exportação ---------- */
+
+export const previewImport = async (body: PreviewImport) =>
+  readJson<ImportPreview>(await api.import.preview.$post({ json: body }));
+export const confirmImport = async (body: ConfirmImport) =>
+  readJson<ImportResult>(await api.import.confirm.$post({ json: body }));
+export const importBatchesQuery = queryOptions({
+  queryKey: ["import-batches"],
+  queryFn: async () => readJson<ImportBatch[]>(await api.import.batches.$get()),
+});
+export const undoImport = async (id: string) =>
+  readJson<{ removed: number }>(await api.import.batches[":id"].$delete({ param: { id } }));
+
+/** Link direto (mesma origem: o cookie de sessão vai junto e o navegador baixa o arquivo). */
+export function exportUrl(from?: string, to?: string) {
+  const qs = new URLSearchParams();
+  if (from) qs.set("from", from);
+  if (to) qs.set("to", to);
+  const q = qs.toString();
+  return `/api/export/transactions.csv${q ? `?${q}` : ""}`;
+}

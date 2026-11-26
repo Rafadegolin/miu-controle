@@ -15,6 +15,7 @@ import {
   Sun,
   Target,
   TrendingUp,
+  Upload,
   Wallet,
 } from "lucide-react";
 import { type ReactNode, useState } from "react";
@@ -37,7 +38,8 @@ export const NAV: NavItem[] = [
   { to: "/orcamentos", label: "Orçamentos", icon: PieChart, section: "Planejamento" },
   { to: "/metas", label: "Metas", icon: Target, section: "Planejamento" },
   { to: "/relatorios", label: "Relatórios", icon: TrendingUp, section: "Planejamento" },
-  { to: "/configuracoes", label: "Configurações", icon: Settings, section: "Conta" },
+  { to: "/importar", label: "Importar extrato", icon: Upload, section: "Ferramentas" },
+  { to: "/configuracoes", label: "Configurações", icon: Settings, section: "Ferramentas" },
 ];
 
 const THEME_NEXT: Record<Theme, Theme> = { system: "light", light: "dark", dark: "system" };
