@@ -11,6 +11,7 @@ export const updateMeSchema = z
       .nullable()
       .optional(),
     timezone: z.string().min(1).max(64).optional(),
+    emailAlerts: z.boolean().optional(),
   })
   .strict();
 
@@ -26,5 +27,6 @@ export type Me = {
     currency: string;
     monthlyIncomeCents: number | null;
     onboardingCompleted: boolean;
+    emailAlerts: boolean;
   };
 };

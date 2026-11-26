@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient, useSuspenseQuery } from "@tansta
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { LogOut, Monitor, Moon, Smartphone, Sun } from "lucide-react";
 import { type FormEvent, useState } from "react";
+import { AlertsCard, DeleteAccountCard } from "@/components/account-danger";
 import { CategoriesManager } from "@/components/categories-manager";
 import { Alert, Button, Card, Field, Input } from "@/components/ui";
 import { authClient } from "@/lib/auth-client";
@@ -20,6 +21,7 @@ function Configuracoes() {
     <div className="grid gap-4 lg:grid-cols-2">
       <Perfil />
       <Aparencia />
+      <AlertsCard />
       <CategoriesManager />
       <Sessoes />
       <Card className="flex flex-col gap-3 p-5">
@@ -27,6 +29,7 @@ function Configuracoes() {
         <p className="text-sm text-muted">Encerra a sessão neste aparelho.</p>
         <SairButton />
       </Card>
+      <DeleteAccountCard />
     </div>
   );
 }

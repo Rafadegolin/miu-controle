@@ -54,6 +54,9 @@ export function createAuth({ env, db, mailer, defer }: Deps) {
         ? { google: { clientId: env.GOOGLE_CLIENT_ID, clientSecret: env.GOOGLE_CLIENT_SECRET } }
         : {},
 
+    // "Excluir minha conta" (LGPD): apaga o usuário e, em cascata, todos os dados dele.
+    user: { deleteUser: { enabled: true } },
+
     databaseHooks: {
       user: {
         create: {
@@ -68,8 +71,9 @@ export function createAuth({ env, db, mailer, defer }: Deps) {
     session: {
       expiresIn: 30 * DAY,
       updateAge: DAY,
-      // Evita ir ao banco em toda request: a sessão fica num cookie assinado por 5 minutos.
-      cookieCache: { enabled: true, maxAge: 5 * 60 },
+      // Sem cache em cookie: sair dos outros aparelhos, trocar a senha ou excluir a conta valem na
+      // hora (com cache, a sessão antiga seguiria válida por minutos). Custa 1 consulta indexada.
+      cookieCache: { enabled: false },
     },
 
     advanced: {

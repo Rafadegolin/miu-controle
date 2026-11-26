@@ -262,6 +262,11 @@ export const importRoutes = new Hono<App>()
 /* ---------- exportação ---------- */
 
 const csvCell = (v: string) => (/[;"\n\r]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v);
+/**
+ * Texto livre (descrição, nomes): se começar com = + - @, o Excel/Planilhas lê como fórmula
+ * (ex.: =HYPERLINK(...)). Um apóstrofo na frente faz virar texto.
+ */
+const csvText = (v: string) => csvCell(/^[=+\-@\t\r]/.test(v) ? `'${v}` : v);
 const csvMoney = (cents: number) => (cents / 100).toFixed(2).replace(".", ",");
 const KIND_PT = { income: "Receita", expense: "Despesa", transfer: "Transferência" } as const;
 
@@ -310,16 +315,14 @@ export const exportRoutes = new Hono<App>().use(requireUser).get(
         t.date,
         KIND_PT[t.kind],
         csvMoney(t.kind === "expense" ? -t.amountCents : t.amountCents),
-        t.description,
-        t.categoryId ? (catName.get(t.categoryId) ?? "") : "",
-        accName.get(t.accountId) ?? "",
-        t.toAccountId ? (accName.get(t.toAccountId) ?? "") : "",
+        csvText(t.description),
+        csvText(t.categoryId ? (catName.get(t.categoryId) ?? "") : ""),
+        csvText(accName.get(t.accountId) ?? ""),
+        csvText(t.toAccountId ? (accName.get(t.toAccountId) ?? "") : ""),
         t.status === "posted" ? "Realizado" : "Previsto",
         t.installmentNo && t.installmentTotal ? `${t.installmentNo}/${t.installmentTotal}` : "",
         t.statementMonth ? t.statementMonth.slice(0, 7) : "",
-      ]
-        .map((v) => csvCell(String(v)))
-        .join(";"),
+      ].join(";"),
     );
     // BOM para o Excel abrir com acentos certos.
     const csv = `﻿${[header, ...lines].join("\r\n")}\r\n`;

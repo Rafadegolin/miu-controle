@@ -42,7 +42,7 @@
   --fg: #0b1412;
   --fg-2: #33413d;
   --muted: #63716c;
-  --faint: #97a39f;
+  --faint: #85928d;
   --accent: #0b9670;
   --accent-fill: #32d6a5;
   --on-accent: #032219;
@@ -115,4 +115,16 @@
 @utility num {
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.01em;
+}
+
+/* Quem pede menos movimento no sistema não vê animações (skeletons, giros, transições). */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

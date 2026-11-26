@@ -24,6 +24,15 @@ Controle financeiro pessoal. Monorepo pnpm + Turborepo + Biome, rodando num úni
 - Testes da API (`apps/api/test`) rodam o app inteiro contra um Postgres real em memória (`createTestDb()` de `@miu/db/testing`, PGlite com as migrations). Use `setup()` e `signUpVerified()` de `test/harness.ts`.
 - Toda rota nova precisa de teste de isolamento: um usuário nunca vê nem altera dado de outro.
 
+## Segurança e infraestrutura
+
+- Sessão sem cache em cookie (`cookieCache` desligado em `apps/api/src/lib/auth.ts`): sair dos outros aparelhos, trocar senha e excluir conta valem na hora.
+- Cabeçalhos da SPA (CSP etc.) ficam em `apps/web/public/_headers` (os estáticos não passam pelo Hono). Domínio externo novo (script, fonte, iframe) precisa entrar na CSP de lá.
+- Nada de script inline no `index.html` (a CSP não permite): use arquivo em `apps/web/public`.
+- Exportação CSV neutraliza fórmulas (`csvText` em `apps/api/src/routes/imports.ts`); todo texto livre exportado passa por ela.
+- Rotina diária (Cron Trigger, `apps/api/src/index.ts`): recorrências e avisos por e-mail. Avisos são idempotentes via `sent_alerts`.
+- Ícones do PWA: `node apps/web/scripts/generate-icons.mjs` (desenhados a partir do logo, sem dependências).
+
 ## Regras
 
 - Dinheiro é sempre inteiro em centavos (`bigint` no banco, `number` no JSON). Nunca use float para somar.

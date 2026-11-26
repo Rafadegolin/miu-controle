@@ -60,3 +60,35 @@ export function resetPassword(to: string, url: string): Email {
     }),
   };
 }
+
+export type DigestItem = { tone: "warning" | "danger"; title: string; detail: string };
+
+/** Um e-mail por dia no máximo, juntando todos os avisos novos. */
+export function alertsDigest(to: string, name: string, items: DigestItem[], appUrl: string): Email {
+  const first = name.split(" ")[0] || "Olá";
+  const rows = items
+    .map(
+      (i) =>
+        `<tr><td style="padding:12px 28px 0"><div style="border-left:3px solid ${i.tone === "danger" ? "#cc3439" : "#a85d06"};padding:2px 0 2px 12px"><div style="font-size:15px;font-weight:bold;color:#0b1412">${esc(i.title)}</div><div style="font-size:14px;color:#33413d;margin-top:2px">${esc(i.detail)}</div></div></td></tr>`,
+    )
+    .join("");
+  const html = `<!doctype html><html lang="pt-BR"><body style="margin:0;background:#f5f7f6;font-family:Arial,Helvetica,sans-serif;color:#0b1412">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f5f7f6;padding:32px 16px"><tr><td align="center">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:480px;background:#ffffff;border:1px solid #e1e7e4;border-radius:14px">
+<tr><td style="padding:28px 28px 8px;font-size:15px;font-weight:bold">Miu Controle</td></tr>
+<tr><td style="padding:8px 28px 0;font-size:20px;font-weight:bold;line-height:1.3">${esc(first)}, ${items.length === 1 ? "um aviso" : `${items.length} avisos`} sobre o seu mês</td></tr>
+${rows}
+<tr><td style="padding:24px 28px"><a href="${esc(appUrl)}" style="display:inline-block;background:#32d6a5;color:#032219;text-decoration:none;font-weight:bold;padding:12px 20px;border-radius:10px">Abrir o Miu</a></td></tr>
+<tr><td style="padding:0 28px 28px;font-size:12px;line-height:1.6;color:#63716c">Você recebe estes avisos porque eles estão ligados em Configurações. Dá para desligar lá.</td></tr>
+</table></td></tr></table></body></html>`;
+  const text = `${first}, avisos sobre o seu mês:\n\n${items.map((i) => `- ${i.title}: ${i.detail}`).join("\n")}\n\nAbrir o Miu: ${appUrl}\n\nPara desligar os avisos, vá em Configurações.`;
+  return {
+    to,
+    subject:
+      items.length === 1
+        ? (items[0]?.title ?? "Aviso do Miu Controle")
+        : `${items.length} avisos sobre o seu mês`,
+    html,
+    text,
+  };
+}
