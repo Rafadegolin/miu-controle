@@ -23,6 +23,7 @@ import type {
   Pace,
   PreviewImport,
   RecurringRule,
+  RecurringYear,
   Statement,
   Transaction,
   TransactionPage,
@@ -112,6 +113,7 @@ export function invalidateMoney(queryClient: QueryClient) {
     queryClient.invalidateQueries({ queryKey: ["reports"] }),
     queryClient.invalidateQueries({ queryKey: ["import-batches"] }),
     queryClient.invalidateQueries({ queryKey: ["pace"] }),
+    queryClient.invalidateQueries({ queryKey: ["recurring-year"] }),
   ]);
 }
 
@@ -161,6 +163,14 @@ export const recurringQuery = queryOptions({
   queryFn: async () => readJson<RecurringRule[]>(await api.recurring.$get()),
   staleTime: 60_000,
 });
+
+export const recurringYearQuery = (year: number) =>
+  queryOptions({
+    queryKey: ["recurring-year", year],
+    queryFn: async () =>
+      readJson<RecurringYear>(await api.recurring.year.$get({ query: { year: String(year) } })),
+    staleTime: 60_000,
+  });
 
 export const createRecurring = async (body: CreateRecurring & { firstPosted?: boolean }) =>
   readJson<RecurringRule>(await api.recurring.$post({ json: body as never }));

@@ -1,6 +1,12 @@
-import { addDays, monthlyEquivalent, nextOccurrence } from "@miu/core";
-import { and, asc, type Db, eq, gte, schema } from "@miu/db";
-import { createRecurringSchema, type RecurringRule, updateRecurringSchema } from "@miu/shared";
+import { addDays, monthlyEquivalent, nextOccurrence, occurrencesBetween, statementMonthFor } from "@miu/core";
+import { and, asc, type Db, eq, gte, isNotNull, schema, sql } from "@miu/db";
+import {
+  createRecurringSchema,
+  type InstallmentPlan,
+  type RecurringRule,
+  type RecurringYear,
+  updateRecurringSchema,
+} from "@miu/shared";
 import { Hono } from "hono";
 import { z } from "zod";
 import type { App } from "../env";
@@ -10,7 +16,7 @@ import { ownedAccount, ownedCategory, userToday } from "../lib/user-data";
 import { valid } from "../lib/validate";
 import { requireUser } from "../middleware/auth";
 
-const { recurringRules, transactions } = schema;
+const { recurringRules, transactions, accounts } = schema;
 type Row = typeof recurringRules.$inferSelect;
 
 function toDto(r: Row, today: string): RecurringRule {
@@ -102,6 +108,129 @@ export const recurringRoutes = new Hono<App>()
     ]);
     return c.json(rows.map((r) => toDto(r, today)));
   })
+  /**
+   * Compromissos do ano: por mês, quanto vai para parcelas e quanto para contas fixas (despesas).
+   * No cartão conta o mês da fatura. Meses além do que já foi gerado são projetados pelas regras.
+   */
+  .get(
+    "/year",
+    valid("query", z.object({ year: z.coerce.number().int().min(2000).max(2100).optional() })),
+    async (c) => {
+      const db = c.var.db();
+      const userId = c.var.user.id;
+      const today = await userToday(db, userId);
+      const year = c.req.valid("query").year ?? Number(today.slice(0, 4));
+      const current = today.slice(0, 7);
+      const yearStart = `${year}-01-01`;
+      const yearEnd = `${year}-12-31`;
+      const monthExpr = sql<string>`to_char(coalesce(${transactions.statementMonth}, ${transactions.date}), 'YYYY-MM')`;
+
+      const [sums, plans, rules, cards] = await Promise.all([
+        db
+          .select({
+            month: monthExpr,
+            installments: sql<string>`coalesce(sum(${transactions.amountCents}) filter (where ${transactions.installmentGroupId} is not null), 0)`,
+            fixed: sql<string>`coalesce(sum(${transactions.amountCents}) filter (where ${transactions.recurringRuleId} is not null and ${transactions.installmentGroupId} is null), 0)`,
+          })
+          .from(transactions)
+          .where(
+            and(
+              eq(transactions.userId, userId),
+              eq(transactions.kind, "expense"),
+              sql`coalesce(${transactions.statementMonth}, ${transactions.date}) between ${yearStart} and ${yearEnd}`,
+            ),
+          )
+          .groupBy(monthExpr),
+        db
+          .select({
+            groupId: transactions.installmentGroupId,
+            description: transactions.description,
+            categoryId: transactions.categoryId,
+            accountId: transactions.accountId,
+            amount: transactions.amountCents,
+            no: transactions.installmentNo,
+            total: transactions.installmentTotal,
+            month: monthExpr,
+          })
+          .from(transactions)
+          .where(and(eq(transactions.userId, userId), isNotNull(transactions.installmentGroupId))),
+        db
+          .select()
+          .from(recurringRules)
+          .where(
+            and(
+              eq(recurringRules.userId, userId),
+              eq(recurringRules.kind, "expense"),
+              sql`${recurringRules.pausedAt} is null`,
+            ),
+          ),
+        db
+          .select({ id: accounts.id, closingDay: accounts.closingDay })
+          .from(accounts)
+          .where(and(eq(accounts.userId, userId), eq(accounts.kind, "credit_card"))),
+      ]);
+
+      const months = Array.from({ length: 12 }, (_, i) => {
+        const month = `${year}-${String(i + 1).padStart(2, "0")}`;
+        const row = sums.find((r) => r.month === month);
+        return {
+          month,
+          installmentsCents: Number(row?.installments ?? 0),
+          fixedCents: Number(row?.fixed ?? 0),
+        };
+      });
+
+      // Projeção: o que as regras ainda vão gerar depois do horizonte já criado.
+      const closing = new Map(cards.map((a) => [a.id, a.closingDay]));
+      for (const r of rules) {
+        const after = r.generatedUntil ? addDays(r.generatedUntil, 1) : r.startDate;
+        const from = after > yearStart ? after : yearStart;
+        const dates = occurrencesBetween(
+          {
+            frequency: r.frequency,
+            interval: r.interval,
+            startDate: r.startDate,
+            endDate: r.endDate,
+            dayOfMonth: r.dayOfMonth,
+          },
+          from,
+          yearEnd,
+        );
+        const closingDay = closing.get(r.accountId);
+        for (const d of dates) {
+          const m = closingDay ? statementMonthFor(d, closingDay) : d.slice(0, 7);
+          const slot = months.find((x) => x.month === m);
+          if (slot) slot.fixedCents += r.amountCents;
+        }
+      }
+
+      const groups = new Map<string, typeof plans>();
+      for (const p of plans) if (p.groupId) groups.set(p.groupId, [...(groups.get(p.groupId) ?? []), p]);
+      const installments: InstallmentPlan[] = [];
+      for (const [groupId, list] of groups) {
+        const future = list.filter((p) => p.month >= current).sort((a, b) => (a.no ?? 0) - (b.no ?? 0));
+        const first = future[0];
+        if (!first) continue;
+        installments.push({
+          groupId,
+          description: first.description,
+          categoryId: first.categoryId,
+          accountId: first.accountId,
+          paidCount: list.length - future.length,
+          total: first.total ?? list.length,
+          perInstallmentCents: future.at(-1)?.amount ?? first.amount,
+          remainingCents: future.reduce((s, p) => s + p.amount, 0),
+          lastMonth: list.reduce((a, b) => (a.month > b.month ? a : b)).month,
+        });
+      }
+      installments.sort(
+        (a, b) => a.lastMonth.localeCompare(b.lastMonth) || a.description.localeCompare(b.description),
+      );
+
+      const body: RecurringYear = { year, months, installments };
+      return c.json(body);
+    },
+  )
   .post(
     "/",
     valid(

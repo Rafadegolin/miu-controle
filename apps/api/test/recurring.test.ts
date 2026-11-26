@@ -1,6 +1,13 @@
 import { addDays, addMonths, todayIn } from "@miu/core";
 import { eq, schema } from "@miu/db";
-import type { Account, Category, RecurringRule, Transaction, TransactionPage } from "@miu/shared";
+import type {
+  Account,
+  Category,
+  RecurringRule,
+  RecurringYear,
+  Transaction,
+  TransactionPage,
+} from "@miu/shared";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { HORIZON_DAYS, runDaily } from "../src/lib/recurring";
 import { setup, signUpVerified } from "./harness";
@@ -232,5 +239,65 @@ describe("recorrências", () => {
     ])) {
       expect(res.status).toBe(404);
     }
+  });
+});
+
+describe("compromissos do ano", () => {
+  const year = Number(today.slice(0, 4));
+  const getYear = async (y: number, cookie = ana) =>
+    json<RecurringYear>(t.req(`/api/recurring/year?year=${y}`, { cookie }));
+
+  it("conta fixa: um valor por mês até dezembro, somando gerado e projetado sem duplicar", async () => {
+    await post("/api/recurring", aluguel());
+    const y = await getYear(year);
+    expect(y.months).toHaveLength(12);
+    for (const m of y.months) {
+      const expected = m.month >= today.slice(0, 7) ? 210_000 : 0;
+      expect({ month: m.month, fixed: m.fixedCents }).toEqual({ month: m.month, fixed: expected });
+      expect(m.installmentsCents).toBe(0);
+    }
+  });
+
+  it("parcelas entram no mês da fatura e aparecem na lista de parcelamentos", async () => {
+    const cartao = await post<Account>("/api/accounts", {
+      name: "Cartão",
+      kind: "credit_card",
+      creditLimitCents: 500_000,
+      closingDay: 5,
+      dueDay: 12,
+    });
+    const cats = await json<Category[]>(t.req("/api/categories", { cookie: ana }));
+    await post<Transaction>("/api/transactions", {
+      kind: "expense",
+      amountCents: 30_000,
+      accountId: cartao.id,
+      categoryId: cats.find((c) => c.name === "Compras")?.id,
+      date: today,
+      description: "Geladeira",
+      installments: 3,
+    });
+    const [a, b] = await Promise.all([getYear(year), getYear(year + 1)]);
+    const all = [...a.months, ...b.months];
+    expect(all.reduce((s, m) => s + m.installmentsCents, 0)).toBe(30_000);
+    expect(all.filter((m) => m.installmentsCents > 0)).toHaveLength(3);
+    expect(a.installments).toHaveLength(1);
+    expect(a.installments[0]).toMatchObject({
+      description: "Geladeira",
+      total: 3,
+      paidCount: 0,
+      perInstallmentCents: 10_000,
+      remainingCents: 30_000,
+    });
+  });
+
+  it("pausada não projeta; é isolado por usuário", async () => {
+    const rule = await post<RecurringRule>("/api/recurring", aluguel());
+    const bia = await signUpVerified(t, "bia@exemplo.com");
+    const other = await getYear(year, bia);
+    expect(other.months.every((m) => m.fixedCents === 0)).toBe(true);
+    expect(other.installments).toEqual([]);
+    await post(`/api/recurring/${rule.id}/pause`, { paused: true }, 200);
+    const y = await getYear(year);
+    expect(y.months.every((m) => m.fixedCents === 0)).toBe(true);
   });
 });

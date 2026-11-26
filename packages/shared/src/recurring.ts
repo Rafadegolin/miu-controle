@@ -96,3 +96,27 @@ export function describeFrequency(
   }
   return r.interval === 1 ? `Todo dia ${day}` : `A cada ${r.interval} meses, dia ${day}`;
 }
+
+/* ---------- compromissos do ano ---------- */
+
+export type InstallmentPlan = {
+  groupId: string;
+  description: string;
+  categoryId: string | null;
+  accountId: string;
+  /** Parcelas que já ficaram para trás (mês anterior ao atual). */
+  paidCount: number;
+  total: number;
+  perInstallmentCents: number;
+  /** Soma das parcelas do mês atual em diante. */
+  remainingCents: number;
+  lastMonth: string;
+};
+
+export type RecurringYear = {
+  year: number;
+  /** Despesas por mês (fatura do cartão conta no mês em que vence a fatura). */
+  months: { month: string; installmentsCents: number; fixedCents: number }[];
+  /** Parcelamentos com parcelas do mês atual em diante. */
+  installments: InstallmentPlan[];
+};
