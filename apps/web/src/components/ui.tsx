@@ -1,22 +1,24 @@
+import { TrendingDown, TrendingUp } from "lucide-react";
 import { type ComponentProps, forwardRef, type ReactNode, useId } from "react";
 import { cn } from "@/lib/cn";
 
 type ButtonProps = ComponentProps<"button"> & {
   variant?: "primary" | "secondary" | "ghost" | "danger";
-  size?: "sm" | "md" | "lg";
+  size?: "sm" | "md" | "lg" | "icon";
   loading?: boolean;
 };
 
 const variants = {
-  primary: "bg-accent-fill text-on-accent border-transparent hover:brightness-105",
+  primary: "bg-primary text-on-primary border-transparent hover:bg-primary-hover",
   secondary: "bg-surface text-fg border-line-strong hover:bg-surface-2",
   ghost: "bg-transparent text-fg border-transparent hover:bg-surface-2",
   danger: "bg-transparent text-danger border-danger/35 hover:bg-danger-soft",
 };
 const sizes = {
-  sm: "h-8 px-3 text-[13.5px] rounded-lg",
+  sm: "h-8 px-3 text-[13.5px] rounded-[10px]",
   md: "h-10 px-4 rounded-control",
-  lg: "h-12 px-5 text-base rounded-xl",
+  lg: "h-12 px-5 text-base rounded-[14px]",
+  icon: "size-10 rounded-control",
 };
 
 export function Button({
@@ -55,7 +57,7 @@ export const Input = forwardRef<HTMLInputElement, ComponentProps<"input"> & { in
       ref={ref}
       aria-invalid={invalid || undefined}
       className={cn(
-        "h-[42px] w-full rounded-control border border-line-strong bg-surface px-3 outline-none transition placeholder:text-faint focus:border-accent focus:ring-3 focus:ring-accent/20 disabled:opacity-60 aria-invalid:border-danger",
+        "h-11 w-full rounded-control border border-line-strong bg-surface px-3.5 outline-none transition placeholder:text-faint focus:border-primary focus:ring-4 focus:ring-primary/12 disabled:opacity-60 aria-invalid:border-danger",
         className,
       )}
       {...props}
@@ -83,7 +85,7 @@ export function Field({
   return (
     <div className="flex min-w-0 flex-col gap-1.5">
       <div className="flex items-center justify-between gap-2">
-        <label htmlFor={id} className="text-[13px] font-medium text-muted">
+        <label htmlFor={id} className="text-[13px] font-medium text-fg-2">
           {label}
         </label>
         {aside}
@@ -102,9 +104,48 @@ export function Field({
   );
 }
 
+/** Superfície padrão: branco, sem borda, sombra bem leve, raio 20. */
 export function Card({ className, ...props }: ComponentProps<"section">) {
   return (
-    <section className={cn("min-w-0 rounded-card border border-line bg-surface", className)} {...props} />
+    <section
+      className={cn("min-w-0 rounded-card bg-surface shadow-card ring-1 ring-card-ring", className)}
+      {...props}
+    />
+  );
+}
+
+/** Título pequeno de card ("Gastos no mês", "Faturas"...). */
+export function CardTitle({ children, aside }: { children: ReactNode; aside?: ReactNode }) {
+  return (
+    <div className="flex items-center justify-between gap-3">
+      <h3 className="text-[15px] font-medium tracking-normal text-muted">{children}</h3>
+      {aside}
+    </div>
+  );
+}
+
+/** Variação em pill: "+3%" verde quando é bom, vermelho quando é ruim. */
+export function DeltaPill({ value, goodWhen = "up" }: { value: number | null; goodWhen?: "up" | "down" }) {
+  if (value === null || !Number.isFinite(value)) return null;
+  const pct = Math.round(value * 100);
+  const up = pct >= 0;
+  const good = goodWhen === "up" ? up : !up;
+  const Icon = up ? TrendingUp : TrendingDown;
+  return (
+    <span
+      className={cn(
+        "num inline-flex h-7 items-center gap-1 rounded-full px-2.5 text-[13px] font-medium",
+        pct === 0
+          ? "bg-surface-2 text-muted"
+          : good
+            ? "bg-accent-soft text-accent"
+            : "bg-danger-soft text-danger",
+      )}
+    >
+      <Icon className="size-3.5" aria-hidden />
+      {up ? "+" : ""}
+      {pct}%
+    </span>
   );
 }
 
@@ -123,7 +164,7 @@ export function Alert({
   return (
     <div
       role={tone === "danger" ? "alert" : "status"}
-      className={cn("rounded-xl px-3.5 py-3 text-sm", tones[tone])}
+      className={cn("rounded-[14px] px-4 py-3 text-sm", tones[tone])}
     >
       {children}
     </div>
@@ -151,5 +192,22 @@ export function Logo({ className }: { className?: string }) {
         strokeLinecap="round"
       />
     </svg>
+  );
+}
+
+/** Logo + nome. Minúsculo e arredondado, como o gato. */
+export function Wordmark({ className, size = "md" }: { className?: string; size?: "md" | "lg" }) {
+  return (
+    <span className={cn("inline-flex items-center gap-2", className)}>
+      <Logo className={size === "lg" ? "size-9" : "size-8"} />
+      <span
+        className={cn(
+          "font-semibold lowercase tracking-[-0.045em] text-fg",
+          size === "lg" ? "text-[28px]" : "text-[24px]",
+        )}
+      >
+        miu
+      </span>
+    </span>
   );
 }

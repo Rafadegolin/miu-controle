@@ -1,9 +1,9 @@
 @import "tailwindcss";
 
 /*
- * Tokens do Miu Controle (direção "fintech clean", vindos do protótipo).
- * Componentes usam SÓ estes tokens via classes do Tailwind (bg-surface, text-muted...).
- * Nada de cor hex em componente.
+ * Tokens do Miu Controle v2 — claro como padrão, cards brancos sem borda sobre cinza suave,
+ * números grandes, teal da marca. Componentes usam SÓ estes tokens via classes do Tailwind
+ * (bg-surface, text-muted, bg-primary...). Nada de cor hex em componente.
  */
 @custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
 
@@ -20,6 +20,9 @@
   --color-fg-2: var(--fg-2);
   --color-muted: var(--muted);
   --color-faint: var(--faint);
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-on-primary: var(--on-primary);
   --color-accent: var(--accent);
   --color-accent-fill: var(--accent-fill);
   --color-on-accent: var(--on-accent);
@@ -28,69 +31,95 @@
   --color-warn-soft: var(--warn-soft);
   --color-danger: var(--danger);
   --color-danger-soft: var(--danger-soft);
+  --color-card-ring: var(--card-ring);
 
-  --radius-card: 14px;
-  --radius-control: 10px;
+  --radius-card: 20px;
+  --radius-control: 12px;
+
+  --shadow-card: var(--card-shadow);
+  --shadow-pop: var(--pop-shadow);
 }
 
 :root {
-  --bg: #f5f7f6;
+  --bg: #f4f6f5;
   --surface: #ffffff;
-  --surface-2: #eef2f0;
-  --line: #e1e7e4;
-  --line-strong: #cdd6d2;
+  --surface-2: #f1f4f3;
+  --line: #e7ecea;
+  --line-strong: #d6dedb;
   --fg: #0b1412;
   --fg-2: #33413d;
   --muted: #63716c;
   --faint: #85928d;
-  --accent: #0b9670;
+  /* Botões e links: teal escuro com texto branco (contraste AA). */
+  --primary: #0b8a66;
+  --primary-hover: #097a5a;
+  --on-primary: #ffffff;
+  /* Receitas, sucesso, valores positivos. */
+  --accent: #0b8a66;
+  /* Gráficos e destaques grandes. */
   --accent-fill: #32d6a5;
   --on-accent: #032219;
-  --accent-soft: #ddf5ec;
-  --warn: #a85d06;
-  --warn-soft: #fcefd9;
-  --danger: #cc3439;
-  --danger-soft: #fce4e4;
+  --accent-soft: #e3f7ef;
+  --warn: #b45309;
+  --warn-soft: #fef3e2;
+  --danger: #dc2626;
+  --danger-soft: #fdecec;
+  --card-shadow: 0 1px 2px rgb(11 20 18 / 0.04), 0 8px 24px rgb(11 20 18 / 0.04);
+  --pop-shadow: 0 12px 40px rgb(11 20 18 / 0.14);
+  /* No claro o card não tem contorno; no escuro, um contorno sutil separa do fundo. */
+  --card-ring: transparent;
   color-scheme: light;
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg: #080b0b;
-    --surface: #0f1413;
-    --surface-2: #151b1a;
-    --line: #1e2725;
-    --line-strong: #2b3633;
+    --bg: #0a0e0d;
+    --surface: #121817;
+    --surface-2: #192120;
+    --line: #222b29;
+    --line-strong: #2e3936;
     --fg: #ecf2f0;
     --fg-2: #c1ccc8;
-    --muted: #88958f;
-    --faint: #5c6965;
+    --muted: #8b9893;
+    --faint: #5f6c68;
+    --primary: #32d6a5;
+    --primary-hover: #4fe0b5;
+    --on-primary: #032219;
     --accent: #32d6a5;
-    --accent-soft: #0e2a22;
+    --accent-soft: #10291f;
     --warn: #f0a63a;
     --warn-soft: #2a1f0d;
     --danger: #ff6f6f;
     --danger-soft: #2c1415;
+    --card-shadow: 0 1px 0 rgb(255 255 255 / 0.03);
+    --pop-shadow: 0 16px 48px rgb(0 0 0 / 0.5);
+    --card-ring: #222b29;
     color-scheme: dark;
   }
 }
 
 :root[data-theme="dark"] {
-  --bg: #080b0b;
-  --surface: #0f1413;
-  --surface-2: #151b1a;
-  --line: #1e2725;
-  --line-strong: #2b3633;
+  --bg: #0a0e0d;
+  --surface: #121817;
+  --surface-2: #192120;
+  --line: #222b29;
+  --line-strong: #2e3936;
   --fg: #ecf2f0;
   --fg-2: #c1ccc8;
-  --muted: #88958f;
-  --faint: #5c6965;
+  --muted: #8b9893;
+  --faint: #5f6c68;
+  --primary: #32d6a5;
+  --primary-hover: #4fe0b5;
+  --on-primary: #032219;
   --accent: #32d6a5;
-  --accent-soft: #0e2a22;
+  --accent-soft: #10291f;
   --warn: #f0a63a;
   --warn-soft: #2a1f0d;
   --danger: #ff6f6f;
   --danger-soft: #2c1415;
+  --card-shadow: 0 1px 0 rgb(255 255 255 / 0.03);
+  --pop-shadow: 0 16px 48px rgb(0 0 0 / 0.5);
+  --card-ring: #222b29;
   color-scheme: dark;
 }
 
@@ -107,7 +136,7 @@
     letter-spacing: -0.02em;
   }
   :focus-visible {
-    outline: 2px solid var(--accent);
+    outline: 2px solid var(--primary);
     outline-offset: 2px;
   }
 }
@@ -115,6 +144,22 @@
 @utility num {
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.01em;
+}
+
+/* Números de destaque: grandes e com tracking apertado. */
+@utility num-display {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.04em;
+  font-weight: 600;
+  line-height: 1.05;
+}
+
+/* Modo privacidade (olho na barra lateral): borra todos os valores. */
+html[data-privacy="on"] .num,
+html[data-privacy="on"] .num-display {
+  filter: blur(7px);
+  user-select: none;
+  transition: filter 0.15s;
 }
 
 /* Quem pede menos movimento no sistema não vê animações (skeletons, giros, transições). */
@@ -126,5 +171,16 @@
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
+  }
+}
+
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
   }
 }

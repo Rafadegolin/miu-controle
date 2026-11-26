@@ -35,7 +35,7 @@ function Fundacao() {
         </p>
       </div>
 
-      <section className="rounded-card border border-line bg-surface p-5">
+      <section className="rounded-card bg-surface p-5 shadow-card">
         <div className="flex items-center justify-between">
           <span className="text-sm font-medium text-muted">Status do sistema</span>
           <button

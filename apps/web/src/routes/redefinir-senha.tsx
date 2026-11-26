@@ -53,7 +53,7 @@ function RedefinirSenha() {
           <Alert tone="ok">Senha alterada. Entre com a senha nova.</Alert>
           <Link
             to="/entrar"
-            className="inline-flex h-12 items-center justify-center rounded-xl bg-accent-fill font-medium text-on-accent"
+            className="inline-flex h-12 items-center justify-center rounded-xl bg-primary font-medium text-on-primary"
           >
             Entrar
           </Link>

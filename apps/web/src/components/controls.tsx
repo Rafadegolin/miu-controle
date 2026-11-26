@@ -89,7 +89,7 @@ export function Switch({
       onClick={() => onChange(!checked)}
       className={cn(
         "relative h-6 w-10 shrink-0 rounded-full transition disabled:opacity-50",
-        checked ? "bg-accent-fill" : "bg-line-strong",
+        checked ? "bg-primary" : "bg-line-strong",
       )}
     >
       <span
