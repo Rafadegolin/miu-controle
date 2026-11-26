@@ -32,7 +32,7 @@ import { Wordmark } from "./ui";
 type NavItem = { to: string; label: string; icon: LucideIcon; section: string; mobile?: boolean };
 
 export const NAV: NavItem[] = [
-  { to: "/", label: "Visão geral", icon: LayoutGrid, section: "Organização", mobile: true },
+  { to: "/inicio", label: "Visão geral", icon: LayoutGrid, section: "Organização", mobile: true },
   { to: "/lancamentos", label: "Lançamentos", icon: ArrowLeftRight, section: "Organização", mobile: true },
   { to: "/recorrentes", label: "Recorrentes", icon: Repeat, section: "Organização" },
   { to: "/contas", label: "Contas", icon: Wallet, section: "Controle financeiro" },
@@ -112,7 +112,7 @@ export function AppShell({ me, children }: { me: Me; children: ReactNode }) {
 
 function useCurrent() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  return NAV.find((n) => (n.to === "/" ? pathname === "/" : pathname.startsWith(n.to)));
+  return NAV.find((n) => pathname.startsWith(n.to));
 }
 
 function Shell({ me, children }: { me: Me; children: ReactNode }) {
@@ -129,7 +129,7 @@ function Shell({ me, children }: { me: Me; children: ReactNode }) {
       {/* Barra lateral (desktop) */}
       <aside className="sticky top-0 hidden h-dvh flex-col border-r border-line bg-surface px-4 py-6 lg:flex">
         <div className="flex items-center justify-between px-2 pb-5">
-          <Link to="/" aria-label="Visão geral">
+          <Link to="/inicio" aria-label="Visão geral">
             <Wordmark />
           </Link>
           <PrivacyToggle />
@@ -163,7 +163,7 @@ function Shell({ me, children }: { me: Me; children: ReactNode }) {
         {/* Topo (celular): marca e atalhos */}
         <header className="sticky top-0 z-20 border-b border-line bg-bg/85 backdrop-blur-md lg:hidden">
           <div className="flex h-14 items-center gap-1 px-4">
-            <Link to="/" aria-label="Visão geral" className="mr-auto">
+            <Link to="/inicio" aria-label="Visão geral" className="mr-auto">
               <Wordmark />
             </Link>
             <PrivacyToggle />

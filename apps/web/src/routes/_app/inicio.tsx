@@ -24,7 +24,7 @@ import { accountsQuery, budgetsQuery, categoriesQuery, dashboardQuery, paceQuery
 import { dayShort, MONTHS_SHORT, money, WEEKDAYS } from "@/lib/format";
 import { meQuery } from "@/lib/me";
 
-export const Route = createFileRoute("/_app/")({
+export const Route = createFileRoute("/_app/inicio")({
   loader: ({ context }) => {
     const qc = context.queryClient;
     void qc.prefetchQuery(dashboardQuery);

@@ -29,7 +29,7 @@ function Entrar() {
     setError(null);
     setLoading(true);
     const { error } = await authClient.signIn.email(
-      { email: email.trim(), password, callbackURL: "/" },
+      { email: email.trim(), password, callbackURL: "/inicio" },
       { headers: captchaHeaders(token) },
     );
     setLoading(false);
@@ -43,7 +43,7 @@ function Entrar() {
       return;
     }
     await queryClient.invalidateQueries({ queryKey: meQuery.queryKey });
-    navigate({ to: "/" });
+    navigate({ to: "/inicio" });
   }
 
   return (

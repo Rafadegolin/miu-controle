@@ -20,7 +20,7 @@ export default defineConfig({
         short_name: "Miu",
         description: "Controle financeiro pessoal: contas, cartões, recorrências, orçamentos e metas.",
         lang: "pt-BR",
-        start_url: "/?origem=app",
+        start_url: "/inicio?origem=app",
         scope: "/",
         display: "standalone",
         orientation: "portrait",

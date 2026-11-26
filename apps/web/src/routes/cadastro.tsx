@@ -41,7 +41,7 @@ function Cadastro() {
     setLoading(true);
     const email = form.email.trim();
     const { error } = await authClient.signUp.email(
-      { name: form.name.trim(), email, password: form.password, callbackURL: "/" },
+      { name: form.name.trim(), email, password: form.password, callbackURL: "/inicio" },
       { headers: captchaHeaders(token) },
     );
     setLoading(false);

@@ -145,7 +145,7 @@ export async function runAlerts(db: Db, mailer: Mailer, appUrl: string, now = ne
           p.email,
           p.name,
           fresh.map((f) => f.item),
-          appUrl,
+          `${appUrl}/inicio`,
         ),
       );
       await db

@@ -161,11 +161,11 @@ function Showcase() {
 
 /* ---------- mini-mockups (dados ilustrativos) ---------- */
 
-function MockCard({ children, className }: { children: ReactNode; className?: string }) {
+export function MockCard({ children, className }: { children: ReactNode; className?: string }) {
   return <div className={cn("rounded-[22px] bg-surface p-5 shadow-pop", className)}>{children}</div>;
 }
 
-function StatementMock() {
+export function StatementMock() {
   const rows = [
     { d: "Notebook", m: "5/10", v: "R$ 480,00" },
     { d: "Geladeira", m: "3/6", v: "R$ 533,33" },
@@ -194,7 +194,7 @@ function StatementMock() {
   );
 }
 
-function ProjectionMock() {
+export function ProjectionMock() {
   return (
     <MockCard>
       <p className="text-sm text-muted">Saldo em contas</p>
@@ -219,7 +219,7 @@ function ProjectionMock() {
   );
 }
 
-function PaceMock() {
+export function PaceMock() {
   return (
     <MockCard>
       <p className="text-sm text-muted">Gastos no mês</p>

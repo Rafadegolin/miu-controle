@@ -5,7 +5,7 @@ import { meQuery } from "./me";
 /** Páginas de login/cadastro: quem já está logado vai direto para o app. */
 export async function guestOnly(queryClient: QueryClient) {
   const me = await queryClient.ensureQueryData(meQuery);
-  if (me) throw redirect({ to: "/" });
+  if (me) throw redirect({ to: "/inicio" });
 }
 
 /** Páginas do app: exige sessão; sem onboarding concluído, manda para o onboarding. */

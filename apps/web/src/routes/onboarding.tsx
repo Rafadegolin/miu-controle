@@ -13,7 +13,7 @@ import { completeOnboarding, meQuery, updateMe } from "@/lib/me";
 export const Route = createFileRoute("/onboarding")({
   beforeLoad: async ({ context }) => {
     const me = await requireMe(context.queryClient, { allowOnboarding: true });
-    if (me.settings.onboardingCompleted) throw redirect({ to: "/" });
+    if (me.settings.onboardingCompleted) throw redirect({ to: "/inicio" });
   },
   head: () => ({ meta: [{ title: "Bem-vindo · Miu Controle" }] }),
   component: Onboarding,
@@ -81,7 +81,7 @@ function Onboarding() {
       await Promise.all([...unselected].map((id) => archiveCategory(id, true)));
       await queryClient.invalidateQueries({ queryKey: categoriesQuery.queryKey });
       queryClient.setQueryData(meQuery.queryKey, await completeOnboarding());
-      navigate({ to: "/" });
+      navigate({ to: "/inicio" });
     });
   }
 

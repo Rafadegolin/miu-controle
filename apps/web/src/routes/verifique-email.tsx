@@ -21,7 +21,7 @@ function VerifiqueEmail() {
   async function resend() {
     if (!email) return;
     setStatus("sending");
-    const { error } = await authClient.sendVerificationEmail({ email, callbackURL: "/" });
+    const { error } = await authClient.sendVerificationEmail({ email, callbackURL: "/inicio" });
     if (error) {
       setError(authErrorMessage(error));
       setStatus("error");
