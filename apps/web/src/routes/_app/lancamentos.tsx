@@ -6,6 +6,7 @@ import { Check, Search as SearchIcon, Tag, Trash2, X } from "lucide-react";
 import { useDeferredValue, useState } from "react";
 import { CategoryBadge, IconTile } from "@/components/category-icon";
 import { MonthSwitcher, Segmented } from "@/components/controls";
+import { InstitutionLogo } from "@/components/institution-logo";
 import { useQuickAdd } from "@/components/quick-add";
 import { toast } from "@/components/toast";
 import { byId, TransactionRow } from "@/components/transaction-row";
@@ -323,7 +324,8 @@ function TableRow({
     },
   });
   const cat = tx.categoryId ? categories.get(tx.categoryId) : undefined;
-  const from = accounts.get(tx.accountId)?.name ?? "Conta";
+  const account = accounts.get(tx.accountId);
+  const from = account?.name ?? "Conta";
   const to = tx.toAccountId ? (accounts.get(tx.toAccountId)?.name ?? "Conta") : "";
   const planned = tx.status === "planned";
   const transfer = tx.kind === "transfer";
@@ -371,7 +373,12 @@ function TableRow({
           <CategoryBadge icon={cat?.icon} color={cat?.color} name={cat?.name ?? "Sem categoria"} />
         )}
       </td>
-      <td className="truncate py-3 pr-3 text-sm text-fg-2">{transfer ? `${from} → ${to}` : from}</td>
+      <td className="py-3 pr-3 text-sm text-fg-2">
+        <span className="flex min-w-0 items-center gap-2">
+          {account ? <InstitutionLogo account={account} className="size-5 rounded-[6px]" /> : null}
+          <span className="truncate">{transfer ? `${from} → ${to}` : from}</span>
+        </span>
+      </td>
       <td className="num py-3 pr-3 text-sm text-muted">{dayShort(tx.date)}</td>
       <td
         className={cn(

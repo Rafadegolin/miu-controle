@@ -16,6 +16,8 @@ const toDto = (a: Row, balances: Map<string, number>): Account => ({
   name: a.name,
   kind: a.kind,
   color: a.color,
+  institution: a.institution,
+  cardBrand: (a.cardBrand as Account["cardBrand"]) ?? null,
   initialBalanceCents: a.initialBalanceCents,
   balanceCents: a.initialBalanceCents + (balances.get(a.id) ?? 0),
   archived: a.archivedAt !== null,
@@ -67,12 +69,15 @@ export const accountsRoutes = new Hono<App>()
     const card = current.kind === "credit_card";
     if (
       !card &&
-      (patch.creditLimitCents !== undefined || patch.closingDay !== undefined || patch.dueDay !== undefined)
+      (patch.creditLimitCents !== undefined ||
+        patch.closingDay !== undefined ||
+        patch.dueDay !== undefined ||
+        (patch.cardBrand !== undefined && patch.cardBrand !== null))
     ) {
       throw new HttpError(
         400,
         "dados_invalidos",
-        "Limite, fechamento e vencimento são só de cartão de crédito.",
+        "Limite, fechamento, vencimento e bandeira são só de cartão de crédito.",
       );
     }
     if (card && patch.initialBalanceCents !== undefined) {

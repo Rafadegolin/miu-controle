@@ -50,6 +50,13 @@
       "when": 1795713088158,
       "tag": "0006_spending_limit",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1795718817130,
+      "tag": "0007_institution",
+      "breakpoints": true
     }
   ]
 }

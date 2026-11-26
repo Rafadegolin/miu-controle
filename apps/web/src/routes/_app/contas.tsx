@@ -1,9 +1,10 @@
 import { ACCOUNT_KIND_LABEL, type Account, type AccountKind } from "@miu/shared";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowLeftRight, Banknote, CreditCard, Landmark, LineChart, PiggyBank, Plus } from "lucide-react";
+import { ArrowLeftRight, Plus } from "lucide-react";
 import { useState } from "react";
 import { AccountSheet } from "@/components/account-form";
+import { CardBrandMark, InstitutionLogo } from "@/components/institution-logo";
 import { useQuickAdd } from "@/components/quick-add";
 import { Button, Card } from "@/components/ui";
 import { cn } from "@/lib/cn";
@@ -14,14 +15,6 @@ export const Route = createFileRoute("/_app/contas")({
   head: () => ({ meta: [{ title: "Contas · Miu Controle" }] }),
   component: Contas,
 });
-
-const KIND_ICON = {
-  checking: Landmark,
-  savings: PiggyBank,
-  cash: Banknote,
-  investment: LineChart,
-  credit_card: CreditCard,
-};
 
 function Contas() {
   const { data: accounts = [], isPending } = useQuery(accountsQuery);
@@ -132,24 +125,11 @@ function Contas() {
   );
 }
 
-function Tile({ color, kind }: { color: string; kind: AccountKind }) {
-  const Icon = KIND_ICON[kind];
-  return (
-    <span
-      className="grid size-9 shrink-0 place-items-center rounded-[10px] bg-[color-mix(in_srgb,var(--c)_15%,transparent)] text-(--c)"
-      style={{ "--c": color } as React.CSSProperties}
-      aria-hidden
-    >
-      <Icon className="size-[18px]" />
-    </span>
-  );
-}
-
 function AccountCard({ account: a, onEdit }: { account: Account; onEdit: () => void }) {
   return (
     <Card className="flex flex-col gap-3.5 p-5">
       <div className="flex items-center gap-3">
-        <Tile color={a.color} kind={a.kind} />
+        <InstitutionLogo account={a} />
         <span className="min-w-0 flex-1">
           <span className="block truncate font-semibold">{a.name}</span>
           <span className="text-[13px] text-muted">{ACCOUNT_KIND_LABEL[a.kind]}</span>
@@ -181,13 +161,14 @@ function CardSummary({ account: a, onEdit }: { account: Account; onEdit: () => v
   return (
     <Card className="flex flex-col gap-3.5 p-5">
       <div className="flex items-center gap-3">
-        <Tile color={a.color} kind="credit_card" />
+        <InstitutionLogo account={a} />
         <span className="min-w-0 flex-1">
           <span className="block truncate font-semibold">{a.name}</span>
           <span className="text-[13px] text-muted">
             Fecha dia {a.card?.closingDay} · vence dia {a.card?.dueDay}
           </span>
         </span>
+        <CardBrandMark brand={a.cardBrand} />
         <Button size="sm" variant="ghost" onClick={onEdit}>
           Editar
         </Button>

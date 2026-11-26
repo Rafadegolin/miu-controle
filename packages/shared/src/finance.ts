@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { CARD_BRAND_SLUGS, type CardBrand, INSTITUTION_SLUGS } from "./institutions";
 
 /* ---------- valores fechados ---------- */
 
@@ -118,6 +119,7 @@ export const createAccountSchema = z.discriminatedUnion("kind", [
       kind: z.enum(BANK_ACCOUNT_KINDS),
       initialBalanceCents: z.number().int().min(-MAX_CENTS).max(MAX_CENTS).default(0),
       color: color.default("#1fbf8f"),
+      institution: z.enum(INSTITUTION_SLUGS).nullable().optional(),
     })
     .strict(),
   z
@@ -128,6 +130,8 @@ export const createAccountSchema = z.discriminatedUnion("kind", [
       closingDay: day,
       dueDay: day,
       color: color.default("#3a4644"),
+      institution: z.enum(INSTITUTION_SLUGS).nullable().optional(),
+      cardBrand: z.enum(CARD_BRAND_SLUGS).nullable().optional(),
     })
     .strict(),
 ]);
@@ -137,11 +141,13 @@ export const updateAccountSchema = z
   .object({
     name: name.optional(),
     color: color.optional(),
+    institution: z.enum(INSTITUTION_SLUGS).nullable().optional(),
     initialBalanceCents: z.number().int().min(-MAX_CENTS).max(MAX_CENTS).optional(),
     // só para cartão
     creditLimitCents: limitCents.optional(),
     closingDay: day.optional(),
     dueDay: day.optional(),
+    cardBrand: z.enum(CARD_BRAND_SLUGS).nullable().optional(),
   })
   .strict();
 export type UpdateAccount = z.infer<typeof updateAccountSchema>;
@@ -153,6 +159,10 @@ export type Account = {
   name: string;
   kind: AccountKind;
   color: string;
+  /** Banco (slug de INSTITUTIONS), para a logo. */
+  institution: string | null;
+  /** Só em cartão. */
+  cardBrand: CardBrand | null;
   initialBalanceCents: number;
   /**
    * Derivado: saldo inicial + lançamentos realizados.

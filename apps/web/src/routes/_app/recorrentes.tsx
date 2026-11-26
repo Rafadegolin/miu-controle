@@ -1,11 +1,18 @@
 import { addYearMonth, todayIn } from "@miu/core";
-import { describeFrequency, type InstallmentPlan, type RecurringRule, type RecurringYear } from "@miu/shared";
+import {
+  type Account,
+  describeFrequency,
+  type InstallmentPlan,
+  type RecurringRule,
+  type RecurringYear,
+} from "@miu/shared";
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import { useState } from "react";
 import { IconTile } from "@/components/category-icon";
 import { Switch } from "@/components/controls";
+import { InstitutionLogo } from "@/components/institution-logo";
 import { RecurringSheet } from "@/components/recurring-sheet";
 import { toast } from "@/components/toast";
 import { byId, TransactionRow } from "@/components/transaction-row";
@@ -296,7 +303,7 @@ function InstallmentsCard({
 }: {
   plans: InstallmentPlan[] | undefined;
   catMap: Map<string, { icon: Parameters<typeof IconTile>[0]["icon"]; color: string }>;
-  accMap: Map<string, { name: string }>;
+  accMap: Map<string, Account>;
 }) {
   const remaining = (plans ?? []).reduce((s, p) => s + p.remainingCents, 0);
   return (
@@ -342,7 +349,13 @@ function InstallmentsCard({
                     {p.paidCount}/{p.total}
                   </span>
                 </div>
-                <p className="mt-1 truncate text-xs text-muted">
+                <p className="mt-1 flex items-center gap-1.5 truncate text-xs text-muted">
+                  {accMap.get(p.accountId) ? (
+                    <InstitutionLogo
+                      account={accMap.get(p.accountId) as Account}
+                      className="size-4 rounded-[4px]"
+                    />
+                  ) : null}
                   {accMap.get(p.accountId)?.name ?? "Conta"} · termina em {monthShort(p.lastMonth)} · faltam{" "}
                   <span className="num">{money(p.remainingCents)}</span>
                 </p>

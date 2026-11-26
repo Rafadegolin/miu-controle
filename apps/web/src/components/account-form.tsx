@@ -1,11 +1,23 @@
 import { formatBRL, parseBRL } from "@miu/core";
-import { ACCOUNT_KIND_LABEL, ACCOUNT_KINDS, type Account, type AccountKind, PALETTE } from "@miu/shared";
+import {
+  ACCOUNT_KIND_LABEL,
+  ACCOUNT_KINDS,
+  type Account,
+  type AccountKind,
+  CARD_BRANDS,
+  type CardBrand,
+  INSTITUTIONS,
+  type InstitutionSlug,
+  institutionBySlug,
+  PALETTE,
+} from "@miu/shared";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { cn } from "@/lib/cn";
 import { archiveAccount, createAccount, deleteAccount, invalidateMoney, updateAccount } from "@/lib/finance";
 import { ApiRequestError } from "@/lib/http";
 import { Chip } from "./controls";
+import { CardBrandMark } from "./institution-logo";
 import { Sheet } from "./sheet";
 import { toast } from "./toast";
 import { Alert, Button, Field, Input } from "./ui";
@@ -51,6 +63,18 @@ function AccountForm({
   const isCard = kind === "credit_card";
   const [name, setName] = useState(account?.name ?? "");
   const [color, setColor] = useState(account?.color ?? (isCard ? "#3a4644" : PALETTE[0]));
+  const [institution, setInstitution] = useState<InstitutionSlug | null>(
+    (institutionBySlug(account?.institution)?.slug as InstitutionSlug | undefined) ?? null,
+  );
+  const [cardBrand, setCardBrand] = useState<CardBrand | null>(account?.cardBrand ?? null);
+  const brandColor = institutionBySlug(institution)?.color;
+  const pickInstitution = (slug: InstitutionSlug | null) => {
+    setInstitution(slug);
+    const inst = institutionBySlug(slug);
+    if (!inst) return;
+    setColor(inst.color);
+    if (!name.trim()) setName(inst.name);
+  };
   const [balance, setBalance] = useState(
     account && !account.card ? centsText(account.initialBalanceCents) : "",
   );
@@ -82,6 +106,8 @@ function AccountForm({
           ? updateAccount(account.id, {
               name: name.trim(),
               color,
+              institution,
+              cardBrand,
               creditLimitCents,
               closingDay: c,
               dueDay: d,
@@ -90,6 +116,8 @@ function AccountForm({
               name: name.trim(),
               kind: "credit_card",
               color,
+              institution,
+              cardBrand,
               creditLimitCents,
               closingDay: c,
               dueDay: d,
@@ -98,11 +126,12 @@ function AccountForm({
       const initialBalanceCents = balance.trim() ? parseBRL(balance) : 0;
       if (initialBalanceCents === null) throw fail("Digite o saldo como 1.234,56.");
       return account
-        ? updateAccount(account.id, { name: name.trim(), color, initialBalanceCents })
+        ? updateAccount(account.id, { name: name.trim(), color, institution, initialBalanceCents })
         : createAccount({
             name: name.trim(),
             kind: kind as Exclude<AccountKind, "credit_card">,
             color,
+            institution,
             initialBalanceCents,
           });
     },
@@ -146,6 +175,8 @@ function AccountForm({
           </div>
         </div>
       ) : null}
+      <BankPicker value={institution} onChange={pickInstitution} />
+
       <Field label="Nome">
         {(p) => (
           <Input
@@ -160,6 +191,26 @@ function AccountForm({
 
       {isCard ? (
         <>
+          <div className="flex flex-col gap-1.5">
+            <span className="text-[13px] font-medium text-muted">Bandeira</span>
+            <div className="flex flex-wrap gap-2">
+              {CARD_BRANDS.map((b) => (
+                <button
+                  key={b.slug}
+                  type="button"
+                  aria-pressed={cardBrand === b.slug}
+                  aria-label={b.name}
+                  onClick={() => setCardBrand(cardBrand === b.slug ? null : b.slug)}
+                  className={cn(
+                    "rounded-[10px] p-1 ring-2 transition",
+                    cardBrand === b.slug ? "ring-primary" : "ring-transparent hover:ring-line-strong",
+                  )}
+                >
+                  <CardBrandMark brand={b.slug} className="h-8 min-w-14" />
+                </button>
+              ))}
+            </div>
+          </div>
           <Field label="Limite total">
             {(p) => (
               <Input
@@ -228,7 +279,10 @@ function AccountForm({
       <div className="flex flex-col gap-1.5">
         <span className="text-[13px] font-medium text-muted">Cor</span>
         <div className="flex flex-wrap gap-2">
-          {PALETTE.map((c) => (
+          {[
+            ...(brandColor && !(PALETTE as readonly string[]).includes(brandColor) ? [brandColor] : []),
+            ...PALETTE,
+          ].map((c) => (
             <button
               key={c}
               type="button"
@@ -286,5 +340,74 @@ function AccountForm({
         </Button>
       </div>
     </form>
+  );
+}
+
+/** Escolha do banco: busca + grade de logos. "Nenhum" volta para o ícone tingido. */
+function BankPicker({
+  value,
+  onChange,
+}: {
+  value: InstitutionSlug | null;
+  onChange: (slug: InstitutionSlug | null) => void;
+}) {
+  const [q, setQ] = useState("");
+  const norm = (t: string) =>
+    t
+      .normalize("NFD")
+      .replace(/\p{Diacritic}/gu, "")
+      .toLowerCase();
+  const list = INSTITUTIONS.filter((i) => norm(i.name).includes(norm(q.trim())));
+  const selected = institutionBySlug(value);
+  return (
+    <div className="flex flex-col gap-2">
+      <div className="flex items-center justify-between">
+        <span className="text-[13px] font-medium text-muted">Banco</span>
+        {selected ? (
+          <button
+            type="button"
+            onClick={() => onChange(null)}
+            className="text-[13px] text-muted hover:underline"
+          >
+            Nenhum
+          </button>
+        ) : null}
+      </div>
+      <input
+        value={q}
+        onChange={(e) => setQ(e.target.value)}
+        placeholder="Buscar banco…"
+        aria-label="Buscar banco"
+        className="h-10 rounded-control border border-line-strong bg-surface px-3 outline-none focus:border-primary"
+      />
+      <div className="grid max-h-[188px] grid-cols-5 gap-2 overflow-auto p-0.5 sm:grid-cols-6">
+        {list.map((i) => (
+          <button
+            key={i.slug}
+            type="button"
+            onClick={() => onChange(i.slug)}
+            aria-pressed={value === i.slug}
+            title={i.name}
+            className={cn(
+              "flex flex-col items-center gap-1 rounded-[12px] p-1.5 ring-2 transition",
+              value === i.slug ? "bg-accent-soft ring-primary" : "ring-transparent hover:bg-surface-2",
+            )}
+          >
+            <img
+              src={`/bancos/${i.slug}.svg`}
+              alt=""
+              loading="lazy"
+              className="size-10 rounded-[10px] bg-white object-cover ring-1 ring-line"
+            />
+            <span className="w-full truncate text-center text-[11px] text-fg-2">{i.name}</span>
+          </button>
+        ))}
+        {list.length === 0 ? (
+          <p className="col-span-full py-3 text-center text-sm text-muted">
+            Não achou? Deixe sem banco e escolha uma cor.
+          </p>
+        ) : null}
+      </div>
+    </div>
   );
 }

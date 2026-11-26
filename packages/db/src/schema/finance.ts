@@ -46,6 +46,10 @@ export const accounts = pgTable(
     kind: text({ enum: ACCOUNT_KINDS }).notNull(),
     initialBalanceCents: bigint({ mode: "number" }).notNull().default(0),
     color: text().notNull(),
+    /** Banco da conta (slug do catálogo em @miu/shared/institutions), para mostrar a logo. */
+    institution: text(),
+    /** Só em cartão: bandeira (visa, mastercard, elo, amex, hipercard, diners). */
+    cardBrand: text(),
     // Cartão de crédito (Fase 3)
     creditLimitCents: bigint({ mode: "number" }),
     closingDay: integer(),
@@ -61,6 +65,7 @@ export const accounts = pgTable(
       "accounts_card_fields_check",
       sql`(${t.kind} = 'credit_card') = (${t.closingDay} is not null and ${t.dueDay} is not null)`,
     ),
+    check("accounts_card_brand_check", sql`${t.cardBrand} is null or ${t.kind} = 'credit_card'`),
     check("accounts_days_check", sql`${t.closingDay} between 1 and 28 and ${t.dueDay} between 1 and 28`),
   ],
 );

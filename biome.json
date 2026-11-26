@@ -13,7 +13,9 @@
       "!**/dist",
       "!**/.wrangler",
       "!**/routeTree.gen.ts",
-      "!**/migrations/meta"
+      "!**/migrations/meta",
+      "!apps/web/public/bancos",
+      "!apps/web/public/bandeiras"
     ]
   },
   "formatter": {

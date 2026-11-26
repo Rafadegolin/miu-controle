@@ -6,6 +6,7 @@ import { Check, ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import { useState } from "react";
 import { AccountSheet } from "@/components/account-form";
 import { IconTile } from "@/components/category-icon";
+import { CardBrandMark, InstitutionLogo } from "@/components/institution-logo";
 import { useQuickAdd } from "@/components/quick-add";
 import { StatusPill } from "@/components/status-pill";
 import { byId, TransactionRow } from "@/components/transaction-row";
@@ -43,13 +44,13 @@ function Cartoes() {
             aria-pressed={c.id === card?.id}
             onClick={() => navigate({ search: { id: c.id }, replace: true })}
             className={cn(
-              "inline-flex h-[34px] items-center gap-1.5 rounded-full border px-3 text-sm",
+              "inline-flex h-[38px] items-center gap-2 rounded-full border px-3 text-sm",
               c.id === card?.id
                 ? "border-primary bg-accent-soft text-fg"
                 : "border-line-strong bg-surface text-fg-2",
             )}
           >
-            <span className="size-2 rounded-full" style={{ background: c.color }} aria-hidden />
+            <InstitutionLogo account={c} className="-ml-1.5 size-6 rounded-full" />
             {c.name}
           </button>
         ))}
@@ -206,9 +207,15 @@ function CardView({
         >
           <div className="pointer-events-none absolute -top-[40%] -right-[30%] h-[120%] w-[90%] rounded-full bg-white/[0.07]" />
           <div className="relative flex items-center justify-between">
-            <span className="h-[26px] w-[34px] rounded-md bg-gradient-to-br from-white/55 to-white/20" />
-            <span className="font-semibold tracking-tight">{card.name}</span>
+            <span className="flex min-w-0 items-center gap-2.5">
+              {card.institution ? <InstitutionLogo account={card} className="size-8 ring-white/30" /> : null}
+              <span className="truncate font-semibold tracking-tight">{card.name}</span>
+            </span>
+            <span className="h-[26px] w-[34px] shrink-0 rounded-md bg-gradient-to-br from-white/55 to-white/20" />
           </div>
+          {card.cardBrand ? (
+            <CardBrandMark brand={card.cardBrand} className="absolute right-5 bottom-5" />
+          ) : null}
           <div className="relative">
             <p className="text-xs opacity-75">Limite disponível</p>
             <p className="num text-[26px] font-semibold tracking-[-0.03em]">

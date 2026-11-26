@@ -39,6 +39,8 @@ export default defineConfig({
       workbox: {
         // Só o "casco" do app fica offline. Dados (/api) sempre vêm da rede: nada de saldo velho em cache.
         globPatterns: ["**/*.{js,css,html,svg,png,woff2}"],
+        // Logos de bancos e bandeiras: só as que aparecem na tela, guardadas sob demanda.
+        globIgnores: ["bancos/**", "bandeiras/**"],
         navigateFallback: "/index.html",
         navigateFallbackDenylist: [/^\/api\//],
         cleanupOutdatedCaches: true,
@@ -51,6 +53,13 @@ export default defineConfig({
               cacheName: "fontes",
               expiration: { maxEntries: 20, maxAgeSeconds: 60 * 60 * 24 * 365 },
             },
+          },
+          {
+            urlPattern: ({ url }) =>
+              url.origin === self.location.origin &&
+              (url.pathname.startsWith("/bancos/") || url.pathname.startsWith("/bandeiras/")),
+            handler: "StaleWhileRevalidate",
+            options: { cacheName: "logos", expiration: { maxEntries: 60 } },
           },
         ],
       },

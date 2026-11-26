@@ -10,9 +10,10 @@ import {
   Target,
   Wallet,
 } from "lucide-react";
-import { type CSSProperties, type ReactNode, useState } from "react";
+import { type ReactNode, useState } from "react";
 import { IconTile } from "@/components/category-icon";
 import { Donut, PaceChart, paceTone } from "@/components/charts";
+import { InstitutionLogo } from "@/components/institution-logo";
 import { MonthSummary } from "@/components/month-summary";
 import { useQuickAdd } from "@/components/quick-add";
 import { LimitForm, whole } from "@/components/spending-limit";
@@ -41,10 +42,6 @@ function greeting(hour: number) {
   if (hour < 18) return "Boa tarde";
   return "Boa noite";
 }
-
-const tint = (color: string | undefined) => ({ "--c": color ?? "var(--muted)" }) as CSSProperties;
-const tintClass =
-  "grid size-8 shrink-0 place-items-center rounded-[10px] bg-[color-mix(in_srgb,var(--c)_15%,transparent)] text-(--c)";
 
 function Inicio() {
   const { data: me } = useSuspenseQuery(meQuery);
@@ -382,7 +379,7 @@ function BalanceCard({ dash, banks }: { dash: Dashboard; banks: Account[] }) {
       <ul className="mt-auto flex flex-col gap-2">
         {banks.slice(0, 3).map((a) => (
           <li key={a.id} className="flex items-center gap-2 text-sm">
-            <span className="size-2 rounded-full" style={{ background: a.color }} aria-hidden />
+            <InstitutionLogo account={a} className="size-6 rounded-[7px]" />
             <span className="flex-1 truncate text-fg-2">{a.name}</span>
             <span className={cn("num font-medium", a.balanceCents < 0 && "text-danger")}>
               {money(a.balanceCents)}
@@ -422,9 +419,10 @@ function StatementsCard({ dash, accMap }: { dash: Dashboard; accMap: Map<string,
                     search={{ id: c.accountId, fatura: c.statement.month }}
                     className="flex items-center gap-2.5 text-sm"
                   >
-                    <span className={tintClass} style={tint(a?.color)} aria-hidden>
-                      <CreditCard className="size-4" />
-                    </span>
+                    <InstitutionLogo
+                      account={a ?? { kind: "credit_card", color: "var(--muted)" }}
+                      className="size-8"
+                    />
                     <span className="min-w-0 flex-1">
                       <span className="block truncate font-medium">{a?.name ?? "Cartão"}</span>
                       <span className="text-xs text-muted">vence {dayShort(c.statement.dueDate)}</span>
@@ -468,9 +466,10 @@ function UpcomingCard({
             const a = accMap.get(u.accountId);
             return (
               <li key={`s-${u.accountId}-${u.statement.month}`} className="flex items-center gap-3 py-2.5">
-                <span className={tintClass} style={tint(a?.color)} aria-hidden>
-                  <CreditCard className="size-4" />
-                </span>
+                <InstitutionLogo
+                  account={a ?? { kind: "credit_card", color: "var(--muted)" }}
+                  className="size-8"
+                />
                 <span className="flex-1 truncate text-[15px] font-medium">Fatura {a?.name}</span>
                 <span className="num text-[15px] font-medium">{money(u.statement.remainingCents)}</span>
                 <span className="num w-12 text-right text-sm text-muted">{dayShort(u.date)}</span>
