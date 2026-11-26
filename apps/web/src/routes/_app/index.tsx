@@ -1,6 +1,5 @@
-import { parseBRL } from "@miu/core";
 import type { Account, BudgetLine, Category, Dashboard, Pace } from "@miu/shared";
-import { useMutation, useQuery, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
+import { useQuery, useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import {
   ArrowDownLeft,
@@ -14,15 +13,16 @@ import {
 import { type CSSProperties, type ReactNode, useState } from "react";
 import { IconTile } from "@/components/category-icon";
 import { Donut, PaceChart, paceTone } from "@/components/charts";
+import { MonthSummary } from "@/components/month-summary";
 import { useQuickAdd } from "@/components/quick-add";
+import { LimitForm, whole } from "@/components/spending-limit";
 import { StatusPill } from "@/components/status-pill";
-import { toast } from "@/components/toast";
 import { byId, TransactionRow } from "@/components/transaction-row";
 import { Button, Card, CardTitle, DeltaPill } from "@/components/ui";
 import { cn } from "@/lib/cn";
 import { accountsQuery, budgetsQuery, categoriesQuery, dashboardQuery, paceQuery } from "@/lib/finance";
 import { dayShort, MONTHS_SHORT, money, WEEKDAYS } from "@/lib/format";
-import { meQuery, updateMe } from "@/lib/me";
+import { meQuery } from "@/lib/me";
 
 export const Route = createFileRoute("/_app/")({
   loader: ({ context }) => {
@@ -41,14 +41,6 @@ function greeting(hour: number) {
   if (hour < 18) return "Boa tarde";
   return "Boa noite";
 }
-
-/** Reais sem centavos para números de destaque ("R$ 8.537"). */
-const whole = (cents: number) =>
-  `${cents < 0 ? "-" : ""}R$ ${Math.round(Math.abs(cents) / 100).toLocaleString("pt-BR")}`;
-
-/** Valor para campo de texto ("3.000,00"). */
-const plain = (cents: number) =>
-  (cents / 100).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 const tint = (color: string | undefined) => ({ "--c": color ?? "var(--muted)" }) as CSSProperties;
 const tintClass =
@@ -154,6 +146,7 @@ function CardLink({
 
 function SpendingCard({ pace }: { pace?: Pace | undefined }) {
   const [editing, setEditing] = useState(false);
+  const [summary, setSummary] = useState(false);
   if (!pace) return <Card className="h-[360px] animate-pulse" />;
   const diff = pace.differenceCents;
   const badgeText =
@@ -222,76 +215,16 @@ function SpendingCard({ pace }: { pace?: Pace | undefined }) {
           )}
         </div>
       </div>
-      <Link
-        to="/relatorios"
-        className="flex items-center justify-between px-5 py-3.5 font-medium text-on-primary"
+      <button
+        type="button"
+        onClick={() => setSummary(true)}
+        className="flex items-center justify-between px-5 py-3.5 text-left font-medium text-on-primary"
       >
-        Relatórios do mês
+        Resumo do mês
         <ChevronRight className="size-5" aria-hidden />
-      </Link>
+      </button>
+      <MonthSummary open={summary} onClose={() => setSummary(false)} />
     </section>
-  );
-}
-
-function LimitForm({ pace, onDone }: { pace: Pace; onDone: () => void }) {
-  const queryClient = useQueryClient();
-  const [value, setValue] = useState(pace.limitCents ? plain(pace.limitCents) : "");
-  const save = useMutation({
-    mutationFn: (cents: number | null) => updateMe({ monthlySpendingLimitCents: cents }),
-    onSuccess: async (me) => {
-      queryClient.setQueryData(meQuery.queryKey, me);
-      await queryClient.invalidateQueries({ queryKey: ["pace"] });
-      toast(me.settings.monthlySpendingLimitCents ? "Limite do mês salvo" : "Limite removido");
-      onDone();
-    },
-  });
-  return (
-    <form
-      className="flex flex-col gap-2"
-      onSubmit={(e) => {
-        e.preventDefault();
-        const cents = parseBRL(value);
-        if (cents && cents > 0) save.mutate(cents);
-      }}
-    >
-      <label htmlFor="limite-mes" className="text-[13px] font-medium text-fg-2">
-        Limite de gastos do mês
-      </label>
-      <div className="flex gap-2">
-        <input
-          id="limite-mes"
-          // biome-ignore lint/a11y/noAutofocus: abre direto no campo
-          autoFocus
-          inputMode="decimal"
-          placeholder="3.000,00"
-          value={value}
-          onChange={(e) => setValue(e.target.value)}
-          className="num h-10 min-w-0 flex-1 rounded-control border border-line-strong bg-surface px-3"
-        />
-        <Button type="submit" variant="primary" loading={save.isPending}>
-          Salvar
-        </Button>
-      </div>
-      <div className="flex flex-wrap gap-x-4 gap-y-1 text-[13px]">
-        {pace.averageCents > 0 ? (
-          <button
-            type="button"
-            className="text-primary hover:underline"
-            onClick={() => setValue(plain(pace.averageCents))}
-          >
-            Usar sua média de 3 meses ({whole(pace.averageCents)})
-          </button>
-        ) : null}
-        {pace.limitCents ? (
-          <button type="button" className="text-muted hover:underline" onClick={() => save.mutate(null)}>
-            Remover limite
-          </button>
-        ) : null}
-        <button type="button" className="text-muted hover:underline" onClick={onDone}>
-          Cancelar
-        </button>
-      </div>
-    </form>
   );
 }
 
