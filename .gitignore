@@ -11,3 +11,6 @@ dist/
 .DS_Store
 apps/web/src/routeTree.gen.ts
 .pglite/
+
+# Chave PÚBLICA do Turnstile (vai no bundle de qualquer jeito); o segredo fica no Worker.
+!apps/web/.env.production
