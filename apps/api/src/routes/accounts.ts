@@ -1,9 +1,10 @@
-import { and, asc, eq, or, schema, sql } from "@miu/db";
+import { monthToDate, statementMonthFor } from "@miu/core";
+import { and, asc, eq, gte, isNull, or, schema, sql } from "@miu/db";
 import { type Account, createAccountSchema, updateAccountSchema } from "@miu/shared";
 import { Hono } from "hono";
 import type { App } from "../env";
 import { HttpError } from "../lib/errors";
-import { accountBalances, ownedAccount } from "../lib/user-data";
+import { accountBalances, ownedAccount, userToday } from "../lib/user-data";
 import { valid } from "../lib/validate";
 import { requireUser } from "../middleware/auth";
 
@@ -18,6 +19,10 @@ const toDto = (a: Row, balances: Map<string, number>): Account => ({
   initialBalanceCents: a.initialBalanceCents,
   balanceCents: a.initialBalanceCents + (balances.get(a.id) ?? 0),
   archived: a.archivedAt !== null,
+  card:
+    a.kind === "credit_card" && a.closingDay !== null && a.dueDay !== null
+      ? { creditLimitCents: a.creditLimitCents ?? 0, closingDay: a.closingDay, dueDay: a.dueDay }
+      : null,
 });
 
 async function withBalance(db: ReturnType<App["Variables"]["db"]>, userId: string, a: Row) {
@@ -57,13 +62,54 @@ export const accountsRoutes = new Hono<App>()
   .patch("/:id", valid("json", updateAccountSchema), async (c) => {
     const db = c.var.db();
     const userId = c.var.user.id;
-    await ownedAccount(db, userId, c.req.param("id"));
+    const current = await ownedAccount(db, userId, c.req.param("id"));
+    const patch = c.req.valid("json");
+    const card = current.kind === "credit_card";
+    if (
+      !card &&
+      (patch.creditLimitCents !== undefined || patch.closingDay !== undefined || patch.dueDay !== undefined)
+    ) {
+      throw new HttpError(
+        400,
+        "dados_invalidos",
+        "Limite, fechamento e vencimento são só de cartão de crédito.",
+      );
+    }
+    if (card && patch.initialBalanceCents !== undefined) {
+      throw new HttpError(
+        400,
+        "dados_invalidos",
+        "Cartão não tem saldo inicial: lance as compras e parcelas em aberto.",
+      );
+    }
     const [row] = await db
       .update(accounts)
-      .set(c.req.valid("json"))
-      .where(and(eq(accounts.id, c.req.param("id")), eq(accounts.userId, userId)))
+      .set(patch)
+      .where(and(eq(accounts.id, current.id), eq(accounts.userId, userId)))
       .returning();
     if (!row) throw new HttpError(404, "conta_nao_encontrada", "Conta não encontrada.");
+
+    // Mudou o fechamento: recalcula em qual fatura caem as compras da fatura aberta em diante.
+    // Faturas já fechadas e parcelas ficam como estão.
+    if (card && patch.closingDay && patch.closingDay !== current.closingDay && current.closingDay) {
+      const openMonth = statementMonthFor(await userToday(db, userId), current.closingDay);
+      await db
+        .update(transactions)
+        .set({
+          statementMonth: sql`(case when extract(day from ${transactions.date}) >= ${patch.closingDay}
+            then date_trunc('month', ${transactions.date}) + interval '1 month'
+            else date_trunc('month', ${transactions.date}) end)::date`,
+        })
+        .where(
+          and(
+            eq(transactions.userId, userId),
+            eq(transactions.accountId, current.id),
+            sql`${transactions.kind} <> 'transfer'`,
+            isNull(transactions.installmentGroupId),
+            gte(transactions.statementMonth, monthToDate(openMonth)),
+          ),
+        );
+    }
     return c.json(await withBalance(db, userId, row));
   })
   .post("/:id/archive", async (c) => {

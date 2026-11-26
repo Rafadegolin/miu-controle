@@ -1,7 +1,8 @@
-import { addYearMonth } from "@miu/core";
+import { addYearMonth, dateToMonth, monthToDate, planInstallments, statementMonthFor } from "@miu/core";
 import { and, type Db, desc, eq, gte, ilike, lt, or, schema, sql } from "@miu/db";
 import {
   createTransactionSchema,
+  deleteTransactionQuery,
   listTransactionsQuery,
   type MonthSummary,
   type Transaction,
@@ -12,6 +13,7 @@ import {
 import { Hono } from "hono";
 import { z } from "zod";
 import type { App } from "../env";
+import { cardLedger, focusMonth } from "../lib/cards";
 import { HttpError } from "../lib/errors";
 import { ownedAccount, ownedCategory, userToday } from "../lib/user-data";
 import { valid } from "../lib/validate";
@@ -19,6 +21,7 @@ import { requireUser } from "../middleware/auth";
 
 const { transactions } = schema;
 type Row = typeof transactions.$inferSelect;
+type AccountRow = Awaited<ReturnType<typeof ownedAccount>>;
 
 export const toTransactionDto = (t: Row): Transaction => ({
   id: t.id,
@@ -34,6 +37,7 @@ export const toTransactionDto = (t: Row): Transaction => ({
   source: t.source,
   installment:
     t.installmentNo && t.installmentTotal ? { no: t.installmentNo, total: t.installmentTotal } : null,
+  statementMonth: t.statementMonth ? dateToMonth(t.statementMonth) : null,
 });
 
 const monthRange = (month: string) => ({ from: `${month}-01`, to: `${addYearMonth(month, 1)}-01` });
@@ -47,28 +51,55 @@ function decodeCursor(cursor: string) {
   throw new HttpError(400, "cursor_invalido", "Página inválida. Recarregue a lista.");
 }
 
-/** Confere se contas e categoria pertencem ao usuário e combinam com o tipo do lançamento. */
+const isCard = (a: AccountRow) => a.kind === "credit_card" && a.closingDay !== null && a.dueDay !== null;
+
+/**
+ * Confere se contas e categoria pertencem ao usuário e combinam com o tipo do lançamento.
+ * Devolve as contas para quem chamou decidir fatura/parcelas.
+ */
 async function checkRefs(
   db: Db,
   userId: string,
   t: { kind: Row["kind"]; accountId: string; toAccountId?: string | null; categoryId?: string | null },
 ) {
-  const checks: Promise<unknown>[] = [ownedAccount(db, userId, t.accountId, { activeOnly: true })];
+  const [account, toAccount] = await Promise.all([
+    ownedAccount(db, userId, t.accountId, { activeOnly: true }),
+    t.kind === "transfer" && t.toAccountId
+      ? ownedAccount(db, userId, t.toAccountId, { activeOnly: true })
+      : null,
+    t.kind !== "transfer" && t.categoryId
+      ? ownedCategory(db, userId, t.categoryId).then((cat) => {
+          if (cat.kind !== t.kind) {
+            throw new HttpError(
+              400,
+              "categoria_incompativel",
+              "Essa categoria é de outro tipo de lançamento.",
+            );
+          }
+        })
+      : null,
+  ]);
   if (t.kind === "transfer") {
-    if (!t.toAccountId) throw new HttpError(400, "dados_invalidos", "Escolha a conta de destino.");
-    if (t.toAccountId === t.accountId)
+    if (!toAccount) throw new HttpError(400, "dados_invalidos", "Escolha a conta de destino.");
+    if (toAccount.id === account.id)
       throw new HttpError(400, "dados_invalidos", "Escolha contas diferentes.");
-    checks.push(ownedAccount(db, userId, t.toAccountId, { activeOnly: true }));
-  } else if (t.categoryId) {
-    checks.push(
-      ownedCategory(db, userId, t.categoryId).then((cat) => {
-        if (cat.kind !== t.kind) {
-          throw new HttpError(400, "categoria_incompativel", "Essa categoria é de outro tipo de lançamento.");
-        }
-      }),
-    );
+    if (isCard(account)) {
+      throw new HttpError(
+        400,
+        "transferencia_do_cartao",
+        "Transferência sai de uma conta. Para pagar a fatura, transfira de uma conta para o cartão.",
+      );
+    }
   }
-  await Promise.all(checks);
+  return { account, toAccount };
+}
+
+/** Fatura que um pagamento quita: a escolhida, ou a mais antiga em aberto. */
+async function paymentStatement(db: Db, userId: string, card: AccountRow, today: string, chosen?: string) {
+  if (chosen) return monthToDate(chosen);
+  const ledger = await cardLedger(db, userId, card.id);
+  const c = { id: card.id, closingDay: card.closingDay ?? 1, dueDay: card.dueDay ?? 1, creditLimitCents: 0 };
+  return monthToDate(focusMonth(c, ledger, today));
 }
 
 async function ownedTransaction(db: Db, userId: string, id: string) {
@@ -173,22 +204,90 @@ export const transactionsRoutes = new Hono<App>()
     const body = c.req.valid("json");
     const db = c.var.db();
     const userId = c.var.user.id;
-    const [today] = await Promise.all([userToday(db, userId), checkRefs(db, userId, body)]);
+    const [today, { account, toAccount }] = await Promise.all([
+      userToday(db, userId),
+      checkRefs(db, userId, body),
+    ]);
+    // Data no futuro é previsão: ainda não aconteceu.
+    const status = body.date > today ? "planned" : body.status;
+    const base = {
+      userId,
+      kind: body.kind,
+      accountId: body.accountId,
+      date: body.date,
+      description: body.description,
+      notes: body.notes ?? null,
+      status,
+    } as const;
+
+    if (body.kind === "transfer") {
+      const statementMonth =
+        toAccount && isCard(toAccount)
+          ? await paymentStatement(db, userId, toAccount, today, body.statementMonth)
+          : null;
+      const [row] = await db
+        .insert(transactions)
+        .values({
+          ...base,
+          id: crypto.randomUUID(),
+          amountCents: body.amountCents,
+          toAccountId: body.toAccountId,
+          categoryId: null,
+          statementMonth,
+        })
+        .returning();
+      if (!row) throw new Error("insert transactions");
+      return c.json(toTransactionDto(row), 201);
+    }
+
+    if (body.installments) {
+      if (body.kind !== "expense" || !isCard(account)) {
+        throw new HttpError(
+          400,
+          "parcelamento_invalido",
+          "Só compras no cartão de crédito podem ser parceladas.",
+        );
+      }
+      const groupId = crypto.randomUUID();
+      const plan = planInstallments({
+        totalCents: body.amountCents,
+        count: body.installments,
+        purchaseDate: body.date,
+        closingDay: account.closingDay ?? 1,
+      });
+      // A compra já aconteceu: todas as parcelas ficam como realizadas (o limite já foi usado).
+      const rows = await db
+        .insert(transactions)
+        .values(
+          plan.map((p) => ({
+            ...base,
+            id: crypto.randomUUID(),
+            amountCents: p.amountCents,
+            categoryId: body.categoryId,
+            date: p.date,
+            status,
+            statementMonth: monthToDate(p.statementMonth),
+            installmentGroupId: groupId,
+            installmentNo: p.no,
+            installmentTotal: p.total,
+          })),
+        )
+        .returning();
+      const first = rows.find((r) => r.installmentNo === 1);
+      if (!first) throw new Error("insert parcelas");
+      return c.json(toTransactionDto(first), 201);
+    }
+
     const [row] = await db
       .insert(transactions)
       .values({
+        ...base,
         id: crypto.randomUUID(),
-        userId,
-        kind: body.kind,
         amountCents: body.amountCents,
-        accountId: body.accountId,
-        toAccountId: body.kind === "transfer" ? body.toAccountId : null,
-        categoryId: body.kind === "transfer" ? null : body.categoryId,
-        date: body.date,
-        description: body.description,
-        notes: body.notes ?? null,
-        // Data no futuro é sempre previsão: ainda não aconteceu.
-        status: body.date > today ? "planned" : body.status,
+        categoryId: body.categoryId,
+        statementMonth: isCard(account)
+          ? monthToDate(statementMonthFor(body.date, account.closingDay ?? 1))
+          : null,
       })
       .returning();
     if (!row) throw new Error("insert transactions");
@@ -206,13 +305,52 @@ export const transactionsRoutes = new Hono<App>()
     if (current.kind !== "transfer" && patch.toAccountId !== undefined) {
       throw new HttpError(400, "dados_invalidos", "Só transferências têm conta de destino.");
     }
+    if (
+      current.installmentGroupId &&
+      ((patch.accountId && patch.accountId !== current.accountId) ||
+        (patch.date && patch.date !== current.date))
+    ) {
+      throw new HttpError(
+        400,
+        "parcela_fixa",
+        "Conta e data de uma parcela não mudam. Exclua a compra e lance de novo, se precisar.",
+      );
+    }
     const next = { ...current, ...patch };
-    if (patch.accountId || patch.toAccountId || patch.categoryId) await checkRefs(db, userId, next);
-    const today = await userToday(db, userId);
+    const refsChanged =
+      (patch.accountId !== undefined && patch.accountId !== current.accountId) ||
+      (patch.toAccountId !== undefined && patch.toAccountId !== current.toAccountId) ||
+      (patch.categoryId !== undefined && patch.categoryId !== current.categoryId);
+    const [today, refs] = await Promise.all([
+      userToday(db, userId),
+      // Lançamento antigo numa conta arquivada continua editável enquanto a conta não muda.
+      refsChanged || (patch.date && patch.date !== current.date) ? checkRefs(db, userId, next) : null,
+    ]);
+
+    let statementMonth = current.statementMonth;
+    if (refs && !current.installmentGroupId) {
+      if (current.kind === "transfer") {
+        if (patch.toAccountId && patch.toAccountId !== current.toAccountId) {
+          statementMonth =
+            refs.toAccount && isCard(refs.toAccount)
+              ? await paymentStatement(db, userId, refs.toAccount, today)
+              : null;
+        }
+      } else {
+        statementMonth = isCard(refs.account)
+          ? monthToDate(statementMonthFor(next.date, refs.account.closingDay ?? 1))
+          : null;
+      }
+    }
 
     const [row] = await db
       .update(transactions)
-      .set({ ...patch, status: next.date > today ? "planned" : next.status })
+      .set({
+        ...patch,
+        statementMonth,
+        // parcelas têm datas futuras mas já são compras feitas: não viram "previsto"
+        status: !current.installmentGroupId && next.date > today ? "planned" : next.status,
+      })
       .where(and(eq(transactions.id, current.id), eq(transactions.userId, userId)))
       .returning();
     if (!row) throw new HttpError(404, "lancamento_nao_encontrado", "Lançamento não encontrado.");
@@ -234,12 +372,25 @@ export const transactionsRoutes = new Hono<App>()
     if (!row) throw new HttpError(404, "lancamento_nao_encontrado", "Lançamento não encontrado.");
     return c.json(toTransactionDto(row));
   })
-  .delete("/:id", async (c) => {
+  .delete("/:id", valid("query", deleteTransactionQuery), async (c) => {
+    const { scope } = c.req.valid("query");
     const db = c.var.db();
     const userId = c.var.user.id;
-    await ownedTransaction(db, userId, c.req.param("id"));
-    await db
-      .delete(transactions)
-      .where(and(eq(transactions.id, c.req.param("id")), eq(transactions.userId, userId)));
+    const current = await ownedTransaction(db, userId, c.req.param("id"));
+    if (scope === "following" && current.installmentGroupId && current.installmentNo) {
+      await db
+        .delete(transactions)
+        .where(
+          and(
+            eq(transactions.userId, userId),
+            eq(transactions.installmentGroupId, current.installmentGroupId),
+            gte(transactions.installmentNo, current.installmentNo),
+          ),
+        );
+    } else {
+      await db
+        .delete(transactions)
+        .where(and(eq(transactions.id, current.id), eq(transactions.userId, userId)));
+    }
     return c.body(null, 204);
   });

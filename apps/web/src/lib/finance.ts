@@ -1,10 +1,12 @@
 import type {
   Account,
+  CardOverview,
   Category,
   CreateAccount,
   CreateCategory,
   CreateTransaction,
   MonthSummary,
+  Statement,
   Transaction,
   TransactionPage,
   UpdateAccount,
@@ -61,6 +63,21 @@ export const transactionsQuery = (f: TxFilters) =>
     staleTime: 30_000,
   });
 
+export const cardOverviewQuery = (id: string) =>
+  queryOptions({
+    queryKey: ["cards", id, "overview"],
+    queryFn: async () => readJson<CardOverview>(await api.cards[":id"].overview.$get({ param: { id } })),
+    staleTime: 30_000,
+  });
+
+export const statementQuery = (id: string, month: string) =>
+  queryOptions({
+    queryKey: ["cards", id, "statement", month],
+    queryFn: async () =>
+      readJson<Statement>(await api.cards[":id"].statements[":month"].$get({ param: { id, month } })),
+    staleTime: 30_000,
+  });
+
 /* ---------- escritas ---------- */
 
 /** Depois de mexer em lançamentos, saldo, listas e resumos precisam ser recalculados. */
@@ -69,6 +86,7 @@ export function invalidateMoney(queryClient: QueryClient) {
     queryClient.invalidateQueries({ queryKey: ["accounts"] }),
     queryClient.invalidateQueries({ queryKey: ["transactions"] }),
     queryClient.invalidateQueries({ queryKey: ["summary"] }),
+    queryClient.invalidateQueries({ queryKey: ["cards"] }),
   ]);
 }
 
@@ -78,8 +96,8 @@ export const updateTransaction = async (id: string, body: UpdateTransaction) =>
   readJson<Transaction>(await api.transactions[":id"].$patch({ param: { id }, json: body }));
 export const confirmTransaction = async (id: string) =>
   readJson<Transaction>(await api.transactions[":id"].confirm.$post({ param: { id } }));
-export async function deleteTransaction(id: string) {
-  const res = await api.transactions[":id"].$delete({ param: { id } });
+export async function deleteTransaction(id: string, scope: "one" | "following" = "one") {
+  const res = await api.transactions[":id"].$delete({ param: { id }, query: { scope } });
   if (!res.ok) await readJson(res);
 }
 

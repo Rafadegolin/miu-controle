@@ -104,14 +104,33 @@ const positiveCents = z
 
 /* ---------- contas ---------- */
 
-export const createAccountSchema = z
-  .object({
-    name,
-    kind: z.enum(BANK_ACCOUNT_KINDS),
-    initialBalanceCents: z.number().int().min(-MAX_CENTS).max(MAX_CENTS).default(0),
-    color: color.default("#1fbf8f"),
-  })
-  .strict();
+const day = z
+  .number({ error: "Informe o dia." })
+  .int()
+  .min(1, "Use um dia entre 1 e 28.")
+  .max(28, "Use um dia entre 1 e 28 (todo mês tem esses dias).");
+const limitCents = z.number().int().min(0, "O limite não pode ser negativo.").max(MAX_CENTS);
+
+export const createAccountSchema = z.discriminatedUnion("kind", [
+  z
+    .object({
+      name,
+      kind: z.enum(BANK_ACCOUNT_KINDS),
+      initialBalanceCents: z.number().int().min(-MAX_CENTS).max(MAX_CENTS).default(0),
+      color: color.default("#1fbf8f"),
+    })
+    .strict(),
+  z
+    .object({
+      name,
+      kind: z.literal("credit_card"),
+      creditLimitCents: limitCents,
+      closingDay: day,
+      dueDay: day,
+      color: color.default("#3a4644"),
+    })
+    .strict(),
+]);
 export type CreateAccount = z.input<typeof createAccountSchema>;
 
 export const updateAccountSchema = z
@@ -119,9 +138,15 @@ export const updateAccountSchema = z
     name: name.optional(),
     color: color.optional(),
     initialBalanceCents: z.number().int().min(-MAX_CENTS).max(MAX_CENTS).optional(),
+    // só para cartão
+    creditLimitCents: limitCents.optional(),
+    closingDay: day.optional(),
+    dueDay: day.optional(),
   })
   .strict();
 export type UpdateAccount = z.infer<typeof updateAccountSchema>;
+
+export type CardInfo = { creditLimitCents: number; closingDay: number; dueDay: number };
 
 export type Account = {
   id: string;
@@ -129,9 +154,13 @@ export type Account = {
   kind: AccountKind;
   color: string;
   initialBalanceCents: number;
-  /** Derivado: saldo inicial + lançamentos realizados. */
+  /**
+   * Derivado: saldo inicial + lançamentos realizados.
+   * Em cartão é negativo: o quanto você deve (inclui parcelas futuras já compradas).
+   */
   balanceCents: number;
   archived: boolean;
+  card: CardInfo | null;
 };
 
 /* ---------- categorias ---------- */
@@ -175,6 +204,8 @@ const incomeOrExpense = z.object({
   notes,
   /** "planned" = previsto (não mexe no saldo). Datas futuras viram previsto automaticamente. */
   status: z.enum(["posted", "planned"]).default("posted"),
+  /** Só despesa no cartão: divide o valor total em N parcelas, uma por fatura. */
+  installments: z.number().int().min(2, "Mínimo de 2 parcelas.").max(48, "Máximo de 48 parcelas.").optional(),
 });
 
 const transfer = z.object({
@@ -186,6 +217,8 @@ const transfer = z.object({
   description,
   notes,
   status: z.enum(["posted", "planned"]).default("posted"),
+  /** Transferência para cartão = pagamento de fatura. Qual fatura (YYYY-MM)? Sem isso, a mais antiga em aberto. */
+  statementMonth: yearMonth.optional(),
 });
 
 export const createTransactionSchema = z
@@ -235,9 +268,66 @@ export type Transaction = {
   status: TransactionStatus;
   source: "manual" | "recurring" | "import";
   installment: { no: number; total: number } | null;
+  /** Compra no cartão: fatura em que cai. Pagamento: fatura que paga. YYYY-MM. */
+  statementMonth: string | null;
 };
 
 export type TransactionPage = { items: Transaction[]; nextCursor: string | null };
+
+/* ---------- cartão ---------- */
+
+export type StatementStatus = "open" | "closed" | "paid" | "overdue";
+
+export const STATEMENT_STATUS_LABEL: Record<StatementStatus, string> = {
+  open: "Aberta",
+  closed: "Fechada",
+  paid: "Paga",
+  overdue: "Vencida",
+};
+
+export type StatementSummary = {
+  month: string;
+  closeDate: string;
+  dueDate: string;
+  status: StatementStatus;
+  /** Compras − estornos da fatura (inclui previstos). */
+  totalCents: number;
+  plannedCents: number;
+  paidCents: number;
+  remainingCents: number;
+};
+
+export type Statement = StatementSummary & { items: Transaction[] };
+
+export type CardOverview = {
+  accountId: string;
+  creditLimitCents: number;
+  usedCents: number;
+  availableCents: number;
+  /** Fatura aberta agora (recebe as compras de hoje). */
+  openMonth: string;
+  /** Fatura que pede atenção: a mais antiga com saldo a pagar, ou a aberta. */
+  focusMonth: string;
+  /** Faturas com saldo a pagar (fechadas ou vencidas) + a aberta. */
+  pending: StatementSummary[];
+  /** Total já comprometido nas próximas 6 faturas, a partir da aberta. */
+  upcoming: { month: string; totalCents: number }[];
+  installments: {
+    groupId: string;
+    description: string;
+    categoryId: string | null;
+    perInstallmentCents: number;
+    nextNo: number;
+    total: number;
+    remainingCents: number;
+    lastMonth: string;
+  }[];
+};
+
+export const deleteTransactionQuery = z.object({
+  /** Em parcelas: "one" apaga só esta, "following" apaga esta e as próximas. */
+  scope: z.enum(["one", "following"]).default("one"),
+});
 
 /* ---------- resumo do mês ---------- */
 

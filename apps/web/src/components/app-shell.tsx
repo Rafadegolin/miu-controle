@@ -1,6 +1,17 @@
 import type { Me } from "@miu/shared";
 import { Link, useRouterState } from "@tanstack/react-router";
-import { Home, List, type LucideIcon, Monitor, Moon, Plus, Settings, Sun, Wallet } from "lucide-react";
+import {
+  CreditCard,
+  Home,
+  List,
+  type LucideIcon,
+  Monitor,
+  Moon,
+  Plus,
+  Settings,
+  Sun,
+  Wallet,
+} from "lucide-react";
 import { type ReactNode, useState } from "react";
 import { cn } from "@/lib/cn";
 import { getTheme, setTheme, type Theme } from "@/lib/theme";
@@ -15,7 +26,8 @@ export const NAV: NavItem[] = [
   { to: "/", label: "Início", icon: Home, mobile: true },
   { to: "/lancamentos", label: "Lançamentos", icon: List, mobile: true },
   { to: "/contas", label: "Contas", icon: Wallet, section: "Dinheiro", mobile: true },
-  { to: "/configuracoes", label: "Configurações", icon: Settings, section: "Conta", mobile: true },
+  { to: "/cartoes", label: "Cartões", icon: CreditCard, section: "Dinheiro", mobile: true },
+  { to: "/configuracoes", label: "Configurações", icon: Settings, section: "Conta" },
 ];
 
 const THEME_NEXT: Record<Theme, Theme> = { system: "light", light: "dark", dark: "system" };
@@ -120,6 +132,13 @@ function Shell({ me, children }: { me: Me; children: ReactNode }) {
             <h1 className="text-[19px] font-semibold tracking-tight">{current?.label}</h1>
             <div className="ml-auto flex items-center gap-2">
               <ThemeToggle className="lg:hidden" />
+              <Link
+                to="/configuracoes"
+                aria-label="Configurações"
+                className="grid size-[38px] place-items-center rounded-control text-fg-2 hover:bg-surface-2 lg:hidden"
+              >
+                <Settings className="size-[18px]" aria-hidden />
+              </Link>
               <button
                 type="button"
                 onClick={() => openNew()}

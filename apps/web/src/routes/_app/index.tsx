@@ -1,13 +1,20 @@
 import { todayIn } from "@miu/core";
-import { useInfiniteQuery, useQuery, useSuspenseQuery } from "@tanstack/react-query";
+import { useInfiniteQuery, useQueries, useQuery, useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Wallet } from "lucide-react";
 import { IconTile } from "@/components/category-icon";
 import { useQuickAdd } from "@/components/quick-add";
+import { StatementsCard } from "@/components/statements-card";
 import { byId, TransactionRow } from "@/components/transaction-row";
 import { Button, Card } from "@/components/ui";
 import { cn } from "@/lib/cn";
-import { accountsQuery, categoriesQuery, summaryQuery, transactionsQuery } from "@/lib/finance";
+import {
+  accountsQuery,
+  cardOverviewQuery,
+  categoriesQuery,
+  summaryQuery,
+  transactionsQuery,
+} from "@/lib/finance";
 import { MONTHS_SHORT, money, monthShort, WEEKDAYS } from "@/lib/format";
 import { meQuery } from "@/lib/me";
 
@@ -54,7 +61,18 @@ function Inicio() {
   const top = (s?.byCategory ?? []).slice(0, 6);
   const topMax = Math.max(1, ...top.map((c) => c.postedCents + c.plannedCents));
   const recentItems = (recent.data?.pages[0]?.items ?? []).filter((t) => t.status === "posted").slice(0, 6);
-  const projected = total + (s?.incomePlannedCents ?? 0) - (s?.expensePlannedCents ?? 0);
+  const cards = (accounts.data ?? []).filter((a) => !a.archived && a.card);
+  const overviews = useQueries({ queries: cards.map((c) => cardOverviewQuery(c.id)) });
+  const monthEnd = `${month}-31`;
+  // Faturas que vencem até o fim do mês saem do saldo das contas.
+  const cardsDue = overviews.reduce(
+    (sum, o) =>
+      sum +
+      (o.data?.pending ?? []).filter((p) => p.dueDate <= monthEnd).reduce((x, p) => x + p.remainingCents, 0),
+    0,
+  );
+  // Aproximação até o painel da Fase 6: previstos do mês de todas as contas, menos faturas que vencem no mês.
+  const projected = total + (s?.incomePlannedCents ?? 0) - (s?.expensePlannedCents ?? 0) - cardsDue;
 
   return (
     <>
@@ -86,38 +104,45 @@ function Inicio() {
         </Card>
       ) : (
         <>
-          <Card className="flex flex-col gap-5 p-5">
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <div>
-                <p className="text-[13px] font-medium text-muted">Saldo em contas</p>
-                <p className="num text-[clamp(30px,4.6vw,44px)] font-semibold leading-tight tracking-[-0.035em]">
-                  {money(total)}
-                </p>
-                <p className="mt-1 text-[13px] text-muted">
-                  Com os previstos de {monthShort(month)}: <b className="num text-fg">{money(projected)}</b>
-                </p>
+          <div
+            className={cn("grid gap-4", cards.length > 0 && "lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]")}
+          >
+            <Card className="flex flex-col gap-5 p-5">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <p className="text-[13px] font-medium text-muted">Saldo em contas</p>
+                  <p className="num text-[clamp(30px,4.6vw,44px)] font-semibold leading-tight tracking-[-0.035em]">
+                    {money(total)}
+                  </p>
+                  <p className="mt-1 text-[13px] text-muted">
+                    Previsto para o fim de {monthShort(month)}:{" "}
+                    <b className="num text-fg">{money(projected)}</b>
+                    {cardsDue ? <span className="text-faint"> · já descontando as faturas</span> : null}
+                  </p>
+                </div>
+                <Button size="sm" variant="primary" onClick={() => openNew()}>
+                  Novo lançamento
+                </Button>
               </div>
-              <Button size="sm" variant="primary" onClick={() => openNew()}>
-                Novo lançamento
-              </Button>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {active.map((a) => (
-                <Link
-                  key={a.id}
-                  to="/lancamentos"
-                  search={{ conta: a.id }}
-                  className="inline-flex h-[34px] items-center gap-1.5 rounded-full border border-line-strong px-3 text-sm text-fg-2 hover:bg-surface-2"
-                >
-                  <span className="size-2 rounded-full" style={{ background: a.color }} aria-hidden />
-                  {a.name}{" "}
-                  <b className={cn("num", a.balanceCents < 0 ? "text-danger" : "text-fg")}>
-                    {money(a.balanceCents)}
-                  </b>
-                </Link>
-              ))}
-            </div>
-          </Card>
+              <div className="flex flex-wrap gap-2">
+                {active.map((a) => (
+                  <Link
+                    key={a.id}
+                    to="/lancamentos"
+                    search={{ conta: a.id }}
+                    className="inline-flex h-[34px] items-center gap-1.5 rounded-full border border-line-strong px-3 text-sm text-fg-2 hover:bg-surface-2"
+                  >
+                    <span className="size-2 rounded-full" style={{ background: a.color }} aria-hidden />
+                    {a.name}{" "}
+                    <b className={cn("num", a.balanceCents < 0 ? "text-danger" : "text-fg")}>
+                      {money(a.balanceCents)}
+                    </b>
+                  </Link>
+                ))}
+              </div>
+            </Card>
+            {cards.length ? <StatementsCard cards={cards} /> : null}
+          </div>
 
           <div className="grid gap-4 sm:grid-cols-3">
             <Card className="p-5">

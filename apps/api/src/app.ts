@@ -6,6 +6,7 @@ import { notFound, onError } from "./lib/errors";
 import { contextMiddleware, type Deps, defaultDeps } from "./middleware/context";
 import { authRateLimit } from "./middleware/rate-limit";
 import { accountsRoutes } from "./routes/accounts";
+import { cardsRoutes } from "./routes/cards";
 import { categoriesRoutes } from "./routes/categories";
 import { health } from "./routes/health";
 import { me } from "./routes/me";
@@ -28,7 +29,8 @@ export function createApp(deps: Deps = defaultDeps) {
     .route("/me", me)
     .route("/accounts", accountsRoutes)
     .route("/categories", categoriesRoutes)
-    .route("/transactions", transactionsRoutes);
+    .route("/transactions", transactionsRoutes)
+    .route("/cards", cardsRoutes);
 
   app.notFound(notFound);
   app.onError(onError);
