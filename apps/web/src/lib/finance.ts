@@ -2,12 +2,15 @@ import type {
   Account,
   BudgetMonth,
   CardOverview,
+  CashflowMonth,
   Category,
+  CategoryReport,
   CreateAccount,
   CreateCategory,
   CreateGoal,
   CreateRecurring,
   CreateTransaction,
+  Dashboard,
   Goal,
   GoalContribution,
   MonthSummary,
@@ -97,6 +100,8 @@ export function invalidateMoney(queryClient: QueryClient) {
     queryClient.invalidateQueries({ queryKey: ["cards"] }),
     queryClient.invalidateQueries({ queryKey: ["recurring"] }),
     queryClient.invalidateQueries({ queryKey: ["budgets"] }),
+    queryClient.invalidateQueries({ queryKey: ["dashboard"] }),
+    queryClient.invalidateQueries({ queryKey: ["reports"] }),
   ]);
 }
 
@@ -199,3 +204,28 @@ export const contribute = async (id: string, amountCents: number, date: string) 
   readJson<Goal>(await api.goals[":id"].contributions.$post({ param: { id }, json: { amountCents, date } }));
 export const deleteContribution = async (id: string, cid: string) =>
   readJson<Goal>(await api.goals[":id"].contributions[":cid"].$delete({ param: { id, cid } }));
+
+/* ---------- painel e relatórios ---------- */
+
+export const dashboardQuery = queryOptions({
+  queryKey: ["dashboard"],
+  queryFn: async () => readJson<Dashboard>(await api.dashboard.$get()),
+  staleTime: 30_000,
+});
+
+export const cashflowQuery = (end: string, months = 12) =>
+  queryOptions({
+    queryKey: ["reports", "cashflow", end, months],
+    queryFn: async () =>
+      readJson<CashflowMonth[]>(
+        await api.reports.cashflow.$get({ query: { end, months: String(months) } as never }),
+      ),
+    staleTime: 60_000,
+  });
+
+export const categoryReportQuery = (month: string) =>
+  queryOptions({
+    queryKey: ["reports", "categories", month],
+    queryFn: async () => readJson<CategoryReport>(await api.reports.categories.$get({ query: { month } })),
+    staleTime: 60_000,
+  });

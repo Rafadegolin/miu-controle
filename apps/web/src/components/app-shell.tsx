@@ -14,6 +14,7 @@ import {
   Settings,
   Sun,
   Target,
+  TrendingUp,
   Wallet,
 } from "lucide-react";
 import { type ReactNode, useState } from "react";
@@ -35,6 +36,7 @@ export const NAV: NavItem[] = [
   { to: "/recorrentes", label: "Recorrentes", icon: Repeat, section: "Planejamento" },
   { to: "/orcamentos", label: "Orçamentos", icon: PieChart, section: "Planejamento" },
   { to: "/metas", label: "Metas", icon: Target, section: "Planejamento" },
+  { to: "/relatorios", label: "Relatórios", icon: TrendingUp, section: "Planejamento" },
   { to: "/configuracoes", label: "Configurações", icon: Settings, section: "Conta" },
 ];
 

@@ -9,6 +9,7 @@ import { accountsRoutes } from "./routes/accounts";
 import { budgetsRoutes } from "./routes/budgets";
 import { cardsRoutes } from "./routes/cards";
 import { categoriesRoutes } from "./routes/categories";
+import { dashboardRoutes, reportsRoutes } from "./routes/dashboard";
 import { goalsRoutes } from "./routes/goals";
 import { health } from "./routes/health";
 import { me } from "./routes/me";
@@ -36,7 +37,9 @@ export function createApp(deps: Deps = defaultDeps) {
     .route("/cards", cardsRoutes)
     .route("/recurring", recurringRoutes)
     .route("/budgets", budgetsRoutes)
-    .route("/goals", goalsRoutes);
+    .route("/goals", goalsRoutes)
+    .route("/dashboard", dashboardRoutes)
+    .route("/reports", reportsRoutes);
 
   app.notFound(notFound);
   app.onError(onError);
