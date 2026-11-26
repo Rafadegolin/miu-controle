@@ -44,4 +44,4 @@ Controle financeiro pessoal. Monorepo pnpm + Turborepo + Biome, rodando num úni
 - O frontend usa só os tokens de cor de `apps/web/src/styles.css` (`bg-surface`, `text-muted`...). Nada de hex em componente.
 - Dados no frontend vêm só do TanStack Query com o cliente RPC `api` (`apps/web/src/lib/api.ts`). Nada de `useEffect` com fetch.
 - Textos da interface em português do Brasil, falando com o usuário pelo que ele reconhece.
-- Plano completo e fases: ver o histórico do projeto.
+- Plano, o que já está pronto e próximos passos: [docs/roadmap.md](docs/roadmap.md).
