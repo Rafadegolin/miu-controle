@@ -234,7 +234,7 @@ function Importar() {
                         value={r.description}
                         maxLength={120}
                         onChange={(e) => update(r.index, { description: e.target.value })}
-                        className="h-8 w-full min-w-[180px] rounded-md border border-transparent bg-transparent px-1.5 hover:border-line focus:border-accent"
+                        className="h-8 w-full min-w-[180px] rounded-md border border-transparent bg-transparent px-1.5 hover:border-line focus:border-primary"
                       />
                     </td>
                     <td className="px-2 py-2">
@@ -335,7 +335,7 @@ function Importar() {
           onDrop={onDrop}
           className={cn(
             "flex cursor-pointer flex-col items-center gap-2.5 rounded-2xl border-[1.5px] border-dashed px-5 py-9 text-center",
-            dragging ? "border-accent bg-accent-soft" : "border-line-strong bg-surface-2",
+            dragging ? "border-primary bg-accent-soft" : "border-line-strong bg-surface-2",
           )}
         >
           <span className="grid size-11 place-items-center rounded-xl bg-accent-soft text-accent">
@@ -365,7 +365,7 @@ function Importar() {
       <div className="flex flex-col gap-4">
         <Card>
           <div className="px-5 pt-4">
-            <h3 className="text-[15px] font-semibold">Importações recentes</h3>
+            <h3 className="text-[15px] font-medium text-muted">Importações recentes</h3>
           </div>
           <div className="mt-2">
             {batches.data?.length === 0 ? (
@@ -399,7 +399,7 @@ function Importar() {
         </Card>
 
         <Card className="flex flex-col gap-3 p-5">
-          <h3 className="text-[15px] font-semibold">Exportar lançamentos</h3>
+          <h3 className="text-[15px] font-medium text-muted">Exportar lançamentos</h3>
           <p className="text-[13.5px] text-muted">
             Planilha CSV (abre no Excel e no Google Planilhas), com todos os campos.
           </p>

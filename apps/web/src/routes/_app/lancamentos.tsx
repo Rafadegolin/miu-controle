@@ -572,7 +572,7 @@ function Stat({
       <p className="text-[13px] font-medium text-muted">{label}</p>
       <p
         className={cn(
-          "num mt-1 text-2xl font-semibold tracking-[-0.025em]",
+          "num-display mt-1 text-[28px]",
           tone === "pos" && "text-accent",
           tone === "neg" && "text-danger",
         )}

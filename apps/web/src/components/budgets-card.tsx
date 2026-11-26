@@ -15,7 +15,7 @@ export function BudgetsCard({ month }: { month: string }) {
   return (
     <Card>
       <div className="flex items-center justify-between px-5 pt-4">
-        <h3 className="text-[15px] font-semibold">Orçamentos</h3>
+        <h3 className="text-[15px] font-medium text-muted">Orçamentos</h3>
         <Link to="/orcamentos" className="text-sm font-medium text-accent hover:underline">
           Ver todos
         </Link>

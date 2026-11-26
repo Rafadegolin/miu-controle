@@ -386,7 +386,7 @@ function TransactionForm({
             </Field>
           ) : null}
           {plan && plan.length > 0 ? (
-            <div className="rounded-xl border border-line bg-surface-2 px-3.5 py-3 text-[13.5px] text-fg-2">
+            <div className="rounded-[14px] bg-surface-2 px-3.5 py-3 text-[13.5px] text-fg-2">
               {plan.length}
               {plan.length < d.installments ? " parcelas restantes" : "x"} de{" "}
               <b className="num text-fg">{money(plan.at(-1)?.amountCents ?? 0)}</b>
@@ -401,7 +401,7 @@ function TransactionForm({
       ) : null}
 
       {isInstallment && editing?.installment ? (
-        <div className="rounded-xl border border-line bg-surface-2 px-3.5 py-3 text-[13.5px] text-fg-2">
+        <div className="rounded-[14px] bg-surface-2 px-3.5 py-3 text-[13.5px] text-fg-2">
           Parcela {editing.installment.no} de {editing.installment.total}
           {editing.statementMonth ? ` · fatura de ${monthName(editing.statementMonth)}` : ""}. Mudanças valem
           só para esta parcela.

@@ -92,7 +92,7 @@ function Onboarding() {
       </span>
       <div className="flex gap-1.5" aria-hidden>
         {[1, 2, 3].map((n) => (
-          <span key={n} className={cn("h-1 flex-1 rounded", n <= step ? "bg-accent-fill" : "bg-line")} />
+          <span key={n} className={cn("h-1 flex-1 rounded", n <= step ? "bg-primary" : "bg-surface-2")} />
         ))}
       </div>
 

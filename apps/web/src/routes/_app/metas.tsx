@@ -158,7 +158,7 @@ function GoalCard({ goal: g, onEdit }: { goal: Goal; onEdit: () => void }) {
       <div className="h-2 overflow-hidden rounded-full bg-surface-2">
         <div className="h-full rounded-full" style={{ width: `${pct * 100}%`, background: g.color }} />
       </div>
-      <p className="rounded-xl border border-line bg-surface-2 px-3 py-2.5 text-[13.5px] text-fg-2">
+      <p className="rounded-[14px] bg-surface-2 px-3 py-2.5 text-[13.5px] text-fg-2">
         {pace}
         {behind ? (
           <span className="mt-1 block text-warn">
@@ -353,7 +353,7 @@ function GoalForm({ goal, onDone }: { goal: Goal | null; onDone: () => void }) {
       {goal && history.data?.length ? (
         <div className="flex flex-col gap-1.5">
           <span className="text-[13px] font-medium text-muted">Movimentos</span>
-          <ul className="rounded-xl border border-line">
+          <ul className="overflow-hidden rounded-[14px] bg-surface-2">
             {history.data.map((h) => (
               <li
                 key={h.id}
@@ -382,7 +382,7 @@ function GoalForm({ goal, onDone }: { goal: Goal | null; onDone: () => void }) {
       ) : null}
 
       {goal ? (
-        <div className="flex flex-col gap-2 rounded-xl border border-line bg-surface-2 p-3.5 text-sm">
+        <div className="flex flex-col gap-2 rounded-[14px] bg-surface-2 p-3.5 text-sm">
           {confirm ? (
             <>
               <b>Excluir a meta "{goal.name}" e todos os movimentos?</b>

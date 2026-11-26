@@ -66,17 +66,17 @@ function Relatorios() {
       <div className="grid gap-4 sm:grid-cols-3">
         <Card className="p-5">
           <p className="text-[13px] font-medium text-muted">Entrou em {months} meses</p>
-          <p className="num mt-1 text-2xl font-semibold tracking-[-0.025em] text-accent">{money(totalIn)}</p>
+          <p className="num-display mt-1 text-[28px] text-accent">{money(totalIn)}</p>
         </Card>
         <Card className="p-5">
           <p className="text-[13px] font-medium text-muted">Saiu em {months} meses</p>
-          <p className="num mt-1 text-2xl font-semibold tracking-[-0.025em]">{money(totalOut)}</p>
+          <p className="num-display mt-1 text-[28px]">{money(totalOut)}</p>
         </Card>
         <Card className="p-5">
           <p className="text-[13px] font-medium text-muted">Guardou, em média</p>
           <p
             className={cn(
-              "num mt-1 text-2xl font-semibold tracking-[-0.025em]",
+              "num-display mt-1 text-[28px]",
               avgSaving !== null && avgSaving < 0 && "text-danger",
             )}
           >
@@ -88,7 +88,7 @@ function Relatorios() {
 
       <Card className="flex flex-col gap-3 p-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <h3 className="text-[15px] font-semibold">Receitas x despesas</h3>
+          <h3 className="text-[15px] font-medium text-muted">Receitas x despesas</h3>
           <div className="flex flex-wrap gap-4 text-[13px] text-muted">
             <span className="flex items-center gap-1.5">
               <span className="size-2.5 rounded-sm bg-accent-fill" /> Receitas
@@ -114,7 +114,7 @@ function Relatorios() {
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>
           <div className="px-5 pt-4">
-            <h3 className="text-[15px] font-semibold">Mês a mês</h3>
+            <h3 className="text-[15px] font-medium text-muted">Mês a mês</h3>
           </div>
           <div className="mt-2 overflow-x-auto">
             <table className="num w-full text-sm">
@@ -151,7 +151,7 @@ function Relatorios() {
 
         <Card>
           <div className="flex items-center justify-between px-5 pt-4">
-            <h3 className="text-[15px] font-semibold">Gastos em {monthName}</h3>
+            <h3 className="text-[15px] font-medium text-muted">Gastos em {monthName}</h3>
             <span className="text-xs text-faint">vs. média dos 3 meses antes</span>
           </div>
           <div className="mt-2">

@@ -159,7 +159,7 @@ function CategoryForm({
                 className={cn(
                   "grid aspect-square place-items-center rounded-[10px] border",
                   icon === name
-                    ? "border-accent bg-accent-soft text-fg"
+                    ? "border-primary bg-accent-soft text-fg"
                     : "border-line text-muted hover:bg-surface-2",
                 )}
               >
@@ -187,7 +187,7 @@ function CategoryForm({
       </div>
       {error ? <Alert>{error}</Alert> : null}
       {category ? (
-        <div className="flex flex-col gap-2 rounded-xl border border-line bg-surface-2 p-3.5 text-sm">
+        <div className="flex flex-col gap-2 rounded-[14px] bg-surface-2 p-3.5 text-sm">
           <div>
             <Button size="sm" loading={archive.isPending} onClick={() => archive.mutate()}>
               {category.archived ? "Reativar categoria" : "Arquivar categoria"}

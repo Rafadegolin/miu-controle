@@ -58,7 +58,7 @@ export function Chip({
       className={cn(
         "inline-flex h-[34px] items-center gap-1.5 rounded-full border px-3 text-sm transition",
         pressed
-          ? "border-accent bg-accent-soft text-fg"
+          ? "border-primary bg-accent-soft text-fg"
           : "border-line-strong bg-surface text-fg-2 hover:bg-surface-2",
       )}
     >
@@ -150,7 +150,7 @@ export function AmountInput({
   return (
     <div
       className={cn(
-        "flex items-baseline gap-2 border-b-2 pb-1.5 focus-within:border-accent",
+        "flex items-baseline gap-2 border-b-2 pb-1.5 focus-within:border-primary",
         invalid ? "border-danger" : "border-line-strong",
       )}
     >

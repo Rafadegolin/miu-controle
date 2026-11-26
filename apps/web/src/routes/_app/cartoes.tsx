@@ -45,7 +45,7 @@ function Cartoes() {
             className={cn(
               "inline-flex h-[34px] items-center gap-1.5 rounded-full border px-3 text-sm",
               c.id === card?.id
-                ? "border-accent bg-accent-soft text-fg"
+                ? "border-primary bg-accent-soft text-fg"
                 : "border-line-strong bg-surface text-fg-2",
             )}
           >
@@ -223,7 +223,7 @@ function CardView({
 
         <Card>
           <div className="flex items-center justify-between px-5 pt-4">
-            <h3 className="text-[15px] font-semibold">Próximas faturas</h3>
+            <h3 className="text-[15px] font-medium text-muted">Próximas faturas</h3>
             <span className="text-xs text-faint">já comprometido</span>
           </div>
           <div className="flex flex-col gap-2.5 px-5 pt-4 pb-5">
@@ -249,7 +249,7 @@ function CardView({
 
         <Card>
           <div className="px-5 pt-4">
-            <h3 className="text-[15px] font-semibold">Parcelamentos em andamento</h3>
+            <h3 className="text-[15px] font-medium text-muted">Parcelamentos em andamento</h3>
           </div>
           <div className="mt-2">
             {o && o.installments.length === 0 ? (

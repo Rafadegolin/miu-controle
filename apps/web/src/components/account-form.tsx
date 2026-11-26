@@ -245,7 +245,7 @@ function AccountForm({
       {error ? <Alert>{error}</Alert> : null}
 
       {account ? (
-        <div className="flex flex-col gap-2 rounded-xl border border-line bg-surface-2 p-3.5 text-sm">
+        <div className="flex flex-col gap-2 rounded-[14px] bg-surface-2 p-3.5 text-sm">
           {confirm ? (
             <>
               <b>Excluir "{account.name}"?</b>

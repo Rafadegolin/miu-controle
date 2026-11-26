@@ -77,7 +77,7 @@ function Orcamentos() {
 
       <Card>
         <div className="flex flex-wrap items-center justify-between gap-2 px-5 pt-4">
-          <h3 className="text-[15px] font-semibold">Por categoria</h3>
+          <h3 className="text-[15px] font-medium text-muted">Por categoria</h3>
           {b?.lines.length ? (
             <span className="text-[13px] text-faint">Toque no valor para mudar o limite</span>
           ) : null}
@@ -105,7 +105,7 @@ function Orcamentos() {
 
       {b && b.suggestions.length > 0 ? (
         <Card className="flex flex-col gap-3 p-5">
-          <h3 className="text-[15px] font-semibold">Categorias sem orçamento</h3>
+          <h3 className="text-[15px] font-medium text-muted">Categorias sem orçamento</h3>
           <div className="flex flex-wrap gap-2">
             {b.suggestions.map((s) => (
               <AddBudgetChip

@@ -49,20 +49,20 @@
   --fg: #0b1412;
   --fg-2: #33413d;
   --muted: #63716c;
-  --faint: #85928d;
+  --faint: #6c7974;
   /* Botões e links: teal escuro com texto branco (contraste AA). */
-  --primary: #0b8a66;
-  --primary-hover: #097a5a;
+  --primary: #087a5a;
+  --primary-hover: #066a4e;
   --on-primary: #ffffff;
   /* Receitas, sucesso, valores positivos. */
-  --accent: #0b8a66;
+  --accent: #087a5a;
   /* Gráficos e destaques grandes. */
   --accent-fill: #32d6a5;
   --on-accent: #032219;
   --accent-soft: #e3f7ef;
   --warn: #b45309;
   --warn-soft: #fef3e2;
-  --danger: #dc2626;
+  --danger: #c81e1e;
   --danger-soft: #fdecec;
   --card-shadow: 0 1px 2px rgb(11 20 18 / 0.04), 0 8px 24px rgb(11 20 18 / 0.04);
   --pop-shadow: 0 12px 40px rgb(11 20 18 / 0.14);
@@ -81,7 +81,7 @@
     --fg: #ecf2f0;
     --fg-2: #c1ccc8;
     --muted: #8b9893;
-    --faint: #5f6c68;
+    --faint: #808d88;
     --primary: #32d6a5;
     --primary-hover: #4fe0b5;
     --on-primary: #032219;
@@ -107,7 +107,7 @@
   --fg: #ecf2f0;
   --fg-2: #c1ccc8;
   --muted: #8b9893;
-  --faint: #5f6c68;
+  --faint: #808d88;
   --primary: #32d6a5;
   --primary-hover: #4fe0b5;
   --on-primary: #032219;
