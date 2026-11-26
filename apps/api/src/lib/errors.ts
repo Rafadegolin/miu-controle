@@ -1,5 +1,6 @@
 import type { ApiError } from "@miu/shared";
 import type { ErrorHandler, NotFoundHandler } from "hono";
+import { HTTPException } from "hono/http-exception";
 import type { ContentfulStatusCode } from "hono/utils/http-status";
 import { ZodError, z } from "zod";
 import type { App } from "../env";
@@ -27,6 +28,17 @@ export const onError: ErrorHandler<App> = (err, c) => {
         detalhes: z.flattenError(err).fieldErrors as ApiError["detalhes"],
       },
       400,
+    );
+  }
+  // Erros do próprio Hono (ex.: CSRF recusado → 403) mantêm o status.
+  if (err instanceof HTTPException) {
+    const status = err.status as ContentfulStatusCode;
+    return c.json<ApiError>(
+      {
+        erro: status === 403 ? "acesso_negado" : "requisicao_invalida",
+        mensagem: "Não foi possível atender esse pedido.",
+      },
+      status,
     );
   }
   console.error("erro_inesperado", { path: c.req.path, err });

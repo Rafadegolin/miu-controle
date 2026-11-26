@@ -120,3 +120,22 @@ describe("ações em lote nos lançamentos", () => {
     ).toBe(401);
   });
 });
+
+describe("CSRF", () => {
+  it("POST de formulário vindo de outro site dá 403 (não 500)", async () => {
+    const res = await t.app.request(
+      "http://localhost/api/accounts",
+      {
+        method: "POST",
+        headers: {
+          origin: "https://site-malicioso.example",
+          "content-type": "application/x-www-form-urlencoded",
+        },
+        body: "name=x",
+      },
+      t.env,
+    );
+    expect(res.status).toBe(403);
+    expect(await res.json()).toMatchObject({ erro: "acesso_negado" });
+  });
+});
