@@ -1,6 +1,8 @@
 import type {
   Account,
   BudgetMonth,
+  BulkResult,
+  BulkTransactions,
   CardOverview,
   CashflowMonth,
   Category,
@@ -119,6 +121,8 @@ export const updateTransaction = async (id: string, body: UpdateTransaction) =>
   readJson<Transaction>(await api.transactions[":id"].$patch({ param: { id }, json: body }));
 export const confirmTransaction = async (id: string) =>
   readJson<Transaction>(await api.transactions[":id"].confirm.$post({ param: { id } }));
+export const bulkTransactions = async (body: BulkTransactions) =>
+  readJson<BulkResult>(await api.transactions.bulk.$post({ json: body }));
 export async function deleteTransaction(id: string, scope: "one" | "following" = "one") {
   const res = await api.transactions[":id"].$delete({ param: { id }, query: { scope } });
   if (!res.ok) await readJson(res);

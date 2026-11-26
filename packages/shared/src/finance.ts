@@ -331,6 +331,26 @@ export const deleteTransactionQuery = z.object({
   scope: z.enum(["one", "following"]).default("one"),
 });
 
+/** Ações em lote na lista de lançamentos. */
+export const bulkTransactionsSchema = z.discriminatedUnion("action", [
+  z.object({
+    action: z.literal("set-category"),
+    ids: z.array(z.string().min(1)).min(1).max(500),
+    categoryId: z.string().min(1),
+  }),
+  z.object({
+    action: z.literal("delete"),
+    ids: z.array(z.string().min(1)).min(1).max(500),
+  }),
+]);
+export type BulkTransactions = z.infer<typeof bulkTransactionsSchema>;
+export type BulkResult = {
+  /** Quantos foram alterados ou excluídos. */
+  changed: number;
+  /** Ignorados (transferências ou de outro tipo, ao trocar categoria). */
+  skipped: number;
+};
+
 /* ---------- resumo do mês ---------- */
 
 export type MonthSummary = {

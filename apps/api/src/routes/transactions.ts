@@ -1,6 +1,8 @@
 import { addYearMonth, dateToMonth, monthToDate, planInstallments, statementMonthFor } from "@miu/core";
-import { and, type Db, desc, eq, gte, ilike, lt, or, schema, sql } from "@miu/db";
+import { and, type Db, desc, eq, gte, ilike, inArray, lt, or, schema, sql } from "@miu/db";
 import {
+  type BulkResult,
+  bulkTransactionsSchema,
   createTransactionSchema,
   deleteTransactionQuery,
   listTransactionsQuery,
@@ -380,6 +382,40 @@ export const transactionsRoutes = new Hono<App>()
       .returning();
     if (!row) throw new HttpError(404, "lancamento_nao_encontrado", "Lançamento não encontrado.");
     return c.json(toTransactionDto(row));
+  })
+  /**
+   * Ações em lote: trocar categoria ou excluir. Todos os ids precisam ser do usuário (senão 404 e
+   * nada muda). Ao trocar categoria, só entram lançamentos do mesmo tipo da categoria.
+   */
+  .post("/bulk", valid("json", bulkTransactionsSchema), async (c) => {
+    const body = c.req.valid("json");
+    const db = c.var.db();
+    const userId = c.var.user.id;
+    const ids = [...new Set(body.ids)];
+    const mine = and(eq(transactions.userId, userId), inArray(transactions.id, ids));
+    const rows = await db
+      .select({ id: transactions.id, kind: transactions.kind })
+      .from(transactions)
+      .where(mine);
+    if (rows.length !== ids.length) {
+      throw new HttpError(404, "lancamento_nao_encontrado", "Algum lançamento não foi encontrado.");
+    }
+    let result: BulkResult;
+    if (body.action === "delete") {
+      await db.delete(transactions).where(mine);
+      result = { changed: rows.length, skipped: 0 };
+    } else {
+      const cat = await ownedCategory(db, userId, body.categoryId);
+      const target = rows.filter((r) => r.kind === cat.kind).map((r) => r.id);
+      if (target.length > 0) {
+        await db
+          .update(transactions)
+          .set({ categoryId: cat.id })
+          .where(and(eq(transactions.userId, userId), inArray(transactions.id, target)));
+      }
+      result = { changed: target.length, skipped: rows.length - target.length };
+    }
+    return c.json(result);
   })
   .delete("/:id", valid("query", deleteTransactionQuery), async (c) => {
     const { scope } = c.req.valid("query");

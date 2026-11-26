@@ -85,3 +85,27 @@ export function IconTile({
     </span>
   );
 }
+
+/** Pílula com ícone e nome da categoria, tingida na cor dela. */
+export function CategoryBadge({
+  icon,
+  color,
+  name,
+  transfer,
+}: {
+  icon?: IconName | undefined;
+  color?: string | undefined;
+  name: string;
+  transfer?: boolean;
+}) {
+  const Icon = transfer ? ArrowLeftRight : ICONS[icon ?? "ellipsis"];
+  return (
+    <span
+      className="inline-flex max-w-full items-center gap-1.5 rounded-full bg-[color-mix(in_srgb,var(--c)_13%,transparent)] py-1 pr-2.5 pl-2 text-[13px] font-medium text-fg-2"
+      style={{ "--c": color ?? "var(--muted)" } as React.CSSProperties}
+    >
+      <Icon className="size-3.5 shrink-0 text-(--c)" aria-hidden />
+      <span className="truncate">{name}</span>
+    </span>
+  );
+}
