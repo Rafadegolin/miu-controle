@@ -7,7 +7,7 @@ import {
   statementMonthFor,
   todayIn,
 } from "@miu/core";
-import type { Account, QuickSuggestion, Transaction, TransactionKind } from "@miu/shared";
+import type { Account, CreateTransaction, QuickSuggestion, Transaction, TransactionKind } from "@miu/shared";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Sparkles, Trash2 } from "lucide-react";
 import { useId, useRef, useState } from "react";
@@ -15,7 +15,6 @@ import {
   accountsQuery,
   categoriesQuery,
   createRecurring,
-  createTransaction,
   deleteTransaction,
   invalidateMoney,
   suggestionsQuery,
@@ -24,6 +23,7 @@ import {
 import { MONTHS, money, monthShort } from "@/lib/format";
 import { ApiRequestError } from "@/lib/http";
 import { meQuery } from "@/lib/me";
+import { createOrQueue, removeQueued } from "@/lib/offline";
 import { IconTile } from "./category-icon";
 import { AmountInput, Chip, Segmented, Switch } from "./controls";
 import { Sheet } from "./sheet";
@@ -243,6 +243,8 @@ function TransactionForm({
   }
 
   const save = useMutation({
+    // Roda mesmo offline: createOrQueue decide entre enviar e guardar na fila (o TanStack pausaria).
+    networkMode: "always",
     mutationFn: async () => {
       const status = d.planned || future ? ("planned" as const) : ("posted" as const);
       const fallback =
@@ -276,8 +278,13 @@ function TransactionForm({
           description,
         });
       }
+      // Lançamento novo: sem conexão, vai para a fila do aparelho (lib/offline.ts).
+      const send = async (body: CreateTransaction) => {
+        const r = await createOrQueue(body, me?.id ?? "");
+        return r.queued ? { queued: true as const, clientId: r.clientId } : r.tx;
+      };
       if (d.kind === "transfer") {
-        return createTransaction({
+        return send({
           kind: "transfer",
           amountCents: d.cents,
           accountId: d.accountId,
@@ -288,7 +295,7 @@ function TransactionForm({
           ...(d.statementMonth && toAccount?.card ? { statementMonth: d.statementMonth } : {}),
         });
       }
-      return createTransaction({
+      return send({
         kind: d.kind,
         amountCents: d.cents,
         accountId: d.accountId,
@@ -302,20 +309,24 @@ function TransactionForm({
       });
     },
     onSuccess: (tx) =>
-      done(
-        editing
-          ? "Lançamento atualizado"
-          : d.repeat
-            ? "Salvo e repetindo todo mês"
-            : parcelado
-              ? `Compra em ${d.installments}x salva`
-              : tx.status === "planned"
-                ? "Previsão salva"
-                : "Lançamento salvo",
-        !editing && !d.repeat && "id" in tx && typeof tx.id === "string"
-          ? () => deleteTransaction(tx.id as string, parcelado ? "following" : "one")
-          : undefined,
-      ),
+      "queued" in tx
+        ? done("Sem internet: guardado no aparelho. Envia sozinho quando a conexão voltar.", async () =>
+            removeQueued(tx.clientId),
+          )
+        : done(
+            editing
+              ? "Lançamento atualizado"
+              : d.repeat
+                ? "Salvo e repetindo todo mês"
+                : parcelado
+                  ? `Compra em ${d.installments}x salva`
+                  : tx.status === "planned"
+                    ? "Previsão salva"
+                    : "Lançamento salvo",
+            !editing && !d.repeat && "id" in tx && typeof tx.id === "string"
+              ? () => deleteTransaction(tx.id as string, parcelado ? "following" : "one")
+              : undefined,
+          ),
   });
 
   const remove = useMutation({

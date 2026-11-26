@@ -1,5 +1,5 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
-import { createFileRoute, Outlet } from "@tanstack/react-router";
+import { createFileRoute, Navigate, Outlet } from "@tanstack/react-router";
 import { AppShell } from "@/components/app-shell";
 import { requireMe } from "@/lib/guards";
 import { meQuery } from "@/lib/me";
@@ -11,7 +11,8 @@ export const Route = createFileRoute("/_app")({
 
 function AppLayout() {
   const { data: me } = useSuspenseQuery(meQuery);
-  if (!me) return null; // o beforeLoad já redirecionou
+  // Sessão acabou enquanto o app estava aberto (ou o cache do aparelho estava velho).
+  if (!me) return <Navigate to="/entrar" />;
   return (
     <AppShell me={me}>
       <Outlet />

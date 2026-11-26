@@ -6,6 +6,7 @@ import {
   ArrowUpRight,
   CalendarDays,
   ChevronRight,
+  CloudOff,
   CreditCard,
   Target,
   Wallet,
@@ -45,6 +46,7 @@ function greeting(hour: number) {
 
 function Inicio() {
   const { data: me } = useSuspenseQuery(meQuery);
+  const { openNew } = useQuickAdd();
   const tz = me?.settings.timezone ?? "America/Sao_Paulo";
   const hour = Number(
     new Intl.DateTimeFormat("en-US", { timeZone: tz, hour: "numeric", hourCycle: "h23" }).format(new Date()),
@@ -86,6 +88,25 @@ function Inicio() {
           </Link>
         </Card>
       </>
+    );
+  }
+
+  // Sem internet o TanStack pausa a consulta (não dá erro): mostra o aviso nos dois casos.
+  if (!d && (dash.isError || dash.fetchStatus === "paused")) {
+    return (
+      <Card className="flex flex-col items-center gap-3 px-6 py-14 text-center">
+        <span className="grid size-12 place-items-center rounded-2xl bg-warn-soft text-warn">
+          <CloudOff className="size-6" aria-hidden />
+        </span>
+        <h3 className="text-xl font-semibold">Sem conexão com o Miu</h3>
+        <p className="max-w-md text-muted">
+          Os números aparecem quando a internet voltar. Você já pode lançar: fica guardado no aparelho e é
+          enviado sozinho.
+        </p>
+        <Button variant="primary" onClick={() => openNew()}>
+          Novo lançamento
+        </Button>
+      </Card>
     );
   }
 

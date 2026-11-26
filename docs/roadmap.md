@@ -1,6 +1,6 @@
 # Roadmap do Miu
 
-Estado em 2026-11-26. Produção: https://miu-controle.miu-api.workers.dev (push na `main` publica sozinho pelo CI).
+Estado em 2026-11-27. Produção: https://miu-controle.miu-api.workers.dev (push na `main` publica sozinho pelo CI).
 
 ## Pronto
 
@@ -20,33 +20,39 @@ Estado em 2026-11-26. Produção: https://miu-controle.miu-api.workers.dev (push
   - conta padrão = a última usada;
   - "Salvar e novo" e "Desfazer";
   - atalhos do ícone do app (`/inicio?novo=gasto|receita`).
+- **R2. Lançar sem internet** (`apps/web/src/lib/offline.ts`):
+  - cache no aparelho de `me`, contas, categorias e sugestões, para o app abrir e o painel funcionar
+    sem rede;
+  - fila de lançamentos que envia sozinha ao abrir o app, quando a internet volta e quando o app volta
+    à tela;
+  - pílula "N lançamentos aguardando internet" e aviso "Sem conexão" na Visão geral;
+  - idempotência: `clientId` (UUID do aparelho) vira o id do lançamento, e o reenvio não duplica
+    (`apps/api/test/offline.test.ts`);
+  - fila presa à conta que lançou; sair da conta apaga cache e fila;
+  - verificado de ponta a ponta com Playwright: internet caindo com o app aberto e app aberto já
+    offline.
 
 ## Próximos passos
 
-### 0. Bugs da R1 no celular
+### Bug aberto: painéis no celular (iPhone/PWA)
 
-O usuário vai mandar o retorno do uso no celular, tudo de uma vez. Corrigir antes de começar a R2.
+Ao tocar no "+" ou em "Mais", a tela escurece mas o painel não aparece. No Chrome responsivo do
+computador funciona.
 
-### R2. Lançar sem internet
-
-Lançamento feito offline (metrô, sinal ruim) fica guardado no aparelho e sobe sozinho quando a conexão
-volta.
-
-- **Cache local** de `me`, contas, categorias e sugestões, para o app abrir e o painel funcionar sem
-  rede.
-  - Hoje `requireMe` (`apps/web/src/lib/guards.ts`) depende da rede e mandaria para `/entrar`.
-  - Limpar esse cache ao sair da conta.
-- **Fila de lançamentos pendentes** no aparelho:
-  - enviar no evento `online` e ao abrir o app;
-  - aviso "Salvo no aparelho, envia quando voltar a internet";
-  - contador de pendentes no app.
-- **Idempotência:**
-  - o cliente gera o `id` (UUID) do lançamento e a API aceita esse `id` opcional no `POST
-    /api/transactions`;
-  - se já existir para o mesmo usuário, devolve o existente; se for de outra pessoa, responde com erro
-    genérico, sem vazar nada.
-  - Isso evita duplicar quando a resposta se perde no caminho.
-- **Testes de API:** reenvio com o mesmo `id` não duplica; `id` de outro usuário é recusado.
+- **Já feito** (commit "Celular (Safari/iOS): painéis abriam vazios"):
+  - reproduzido em WebKit com Playwright: o `<dialog>` abria com 2px de altura porque o conteúdo usava
+    `flex-1` (base 0%) sem altura definida;
+  - corrigido em `apps/web/src/components/sheet.tsx` (`flex-auto` + `min-h-0`) e verificado em
+    WebKit e Chromium.
+- **Continua no aparelho do usuário.** O usuário pediu para deixar de lado por enquanto.
+- **Para retomar:**
+  - confirmar aparelho e versão do iOS ou Android, e se acontece no app instalado e no navegador;
+  - pegar um print;
+  - checar se o service worker serviu um bundle antigo (versão em `/api/health` vs. a que o app
+    carregou);
+  - testar `<dialog>` + `showModal()` no iOS < 16.4 (o Tailwind v4 exige Safari 16.4+: `@layer`,
+    `@property`, `color-mix`);
+  - se for o caso, trocar o `<dialog>` por um painel próprio com `position: fixed`.
 
 ### R3. A definir
 

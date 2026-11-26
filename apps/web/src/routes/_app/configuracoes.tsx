@@ -9,6 +9,7 @@ import { Alert, Button, Card, Field, Input } from "@/components/ui";
 import { authClient, authErrorMessage } from "@/lib/auth-client";
 import { cn } from "@/lib/cn";
 import { ApiRequestError, meQuery, updateMe } from "@/lib/me";
+import { clearOfflineData } from "@/lib/offline";
 import { getTheme, setTheme, type Theme } from "@/lib/theme";
 
 export const Route = createFileRoute("/_app/configuracoes")({
@@ -346,6 +347,7 @@ function SairButton() {
           setLoading(true);
           await authClient.signOut();
           queryClient.clear();
+          clearOfflineData();
           navigate({ to: "/entrar" });
         }}
       >

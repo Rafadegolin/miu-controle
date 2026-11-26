@@ -113,6 +113,17 @@ async function paymentStatement(db: Db, userId: string, card: AccountRow, today:
   return monthToDate(focusMonth(c, ledger, today));
 }
 
+/**
+ * Lançamento já criado com esse clientId. Se o id existe mas é de outra pessoa, recusa sem dizer
+ * nada sobre ele (o id é gerado no aparelho, então não pode servir para sondar dados alheios).
+ */
+async function findByClientId(db: Db, userId: string, clientId: string) {
+  const [row] = await db.select().from(transactions).where(eq(transactions.id, clientId));
+  if (!row) return null;
+  if (row.userId !== userId) throw new HttpError(409, "conflito", "Não foi possível salvar este lançamento.");
+  return row;
+}
+
 async function ownedTransaction(db: Db, userId: string, id: string) {
   const [row] = await db
     .select()
@@ -281,6 +292,13 @@ export const transactionsRoutes = new Hono<App>()
     const body = c.req.valid("json");
     const db = c.var.db();
     const userId = c.var.user.id;
+    // Idempotência da fila offline: o mesmo clientId devolve o lançamento já criado.
+    if (body.clientId) {
+      const existing = await findByClientId(db, userId, body.clientId);
+      if (existing) return c.json(toTransactionDto(existing), 200);
+    }
+    const newId = () => crypto.randomUUID();
+    const mainId = body.clientId ?? newId();
     const [today, { account, toAccount }] = await Promise.all([
       userToday(db, userId),
       checkRefs(db, userId, body),
@@ -306,7 +324,7 @@ export const transactionsRoutes = new Hono<App>()
         .insert(transactions)
         .values({
           ...base,
-          id: crypto.randomUUID(),
+          id: mainId,
           amountCents: body.amountCents,
           toAccountId: body.toAccountId,
           categoryId: null,
@@ -343,7 +361,7 @@ export const transactionsRoutes = new Hono<App>()
         .values(
           plan.map((p) => ({
             ...base,
-            id: crypto.randomUUID(),
+            id: p.no === paid + 1 ? mainId : newId(),
             amountCents: p.amountCents,
             categoryId: body.categoryId,
             date: p.date,
@@ -364,7 +382,7 @@ export const transactionsRoutes = new Hono<App>()
       .insert(transactions)
       .values({
         ...base,
-        id: crypto.randomUUID(),
+        id: mainId,
         amountCents: body.amountCents,
         categoryId: body.categoryId,
         statementMonth: isCard(account)

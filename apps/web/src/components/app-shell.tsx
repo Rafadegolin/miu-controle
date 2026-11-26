@@ -24,6 +24,7 @@ import { type ReactNode, useState } from "react";
 import { cn } from "@/lib/cn";
 import { usePrivacy } from "@/lib/privacy";
 import { getTheme, setTheme, type Theme } from "@/lib/theme";
+import { OfflineStatus } from "./offline-status";
 import { QuickAddProvider, useQuickAdd } from "./quick-add";
 import { Sheet } from "./sheet";
 import { Toaster } from "./toast";
@@ -178,6 +179,7 @@ function Shell({ me, children }: { me: Me; children: ReactNode }) {
           {/* Título da página + ação principal */}
           <div className="flex items-center gap-3">
             <h1 className="text-[26px] font-semibold tracking-[-0.03em] lg:text-[30px]">{current?.label}</h1>
+            <OfflineStatus className="max-lg:ml-auto" />
             <button
               type="button"
               onClick={() => openNew()}

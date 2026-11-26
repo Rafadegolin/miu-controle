@@ -220,6 +220,8 @@ const description = z.string().trim().max(120, "Use até 120 caracteres.").defau
 const notes = z.string().trim().max(500, "Use até 500 caracteres.").nullable().optional();
 
 const incomeOrExpense = z.object({
+  /** Gerado no aparelho (UUID): reenviar o mesmo lançamento (fila offline) não duplica. */
+  clientId: z.string().uuid().optional(),
   kind: z.enum(["income", "expense"]),
   amountCents: positiveCents,
   accountId: id,
@@ -236,6 +238,8 @@ const incomeOrExpense = z.object({
 });
 
 const transfer = z.object({
+  /** Gerado no aparelho (UUID): reenviar o mesmo lançamento (fila offline) não duplica. */
+  clientId: z.string().uuid().optional(),
   kind: z.literal("transfer"),
   amountCents: positiveCents,
   accountId: id,

@@ -5,6 +5,7 @@ import { useState } from "react";
 import { authClient, authErrorMessage } from "@/lib/auth-client";
 import { exportUrl } from "@/lib/finance";
 import { meQuery, updateMe } from "@/lib/me";
+import { clearOfflineData } from "@/lib/offline";
 import { Switch } from "./controls";
 import { toast } from "./toast";
 import { Alert, Button, Card, Field, Input } from "./ui";
@@ -59,6 +60,7 @@ export function DeleteAccountCard() {
     },
     onSuccess: () => {
       queryClient.clear();
+      clearOfflineData();
       navigate({ to: "/entrar" });
     },
     onError: (e) =>

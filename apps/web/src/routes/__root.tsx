@@ -21,8 +21,20 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
   errorComponent: ({ error, reset }) => (
     <main className="grid min-h-dvh place-items-center p-6 text-center">
       <div className="flex max-w-sm flex-col items-center gap-3">
-        <h1 className="text-2xl font-semibold">Algo deu errado</h1>
-        <p className="text-muted">Recarregue a página. Se continuar, tente de novo em alguns minutos.</p>
+        {typeof navigator !== "undefined" && !navigator.onLine ? (
+          <>
+            <h1 className="text-2xl font-semibold">Sem internet</h1>
+            <p className="text-muted">
+              Para usar o Miu sem conexão, abra o app com internet uma vez neste aparelho. Depois ele abre e
+              guarda lançamentos mesmo offline.
+            </p>
+          </>
+        ) : (
+          <>
+            <h1 className="text-2xl font-semibold">Algo deu errado</h1>
+            <p className="text-muted">Recarregue a página. Se continuar, tente de novo em alguns minutos.</p>
+          </>
+        )}
         {import.meta.env.DEV ? (
           <pre className="max-w-full overflow-auto text-left text-xs text-danger">{String(error)}</pre>
         ) : null}
