@@ -174,9 +174,12 @@ export function Alert({
 export function Logo({ className }: { className?: string }) {
   return (
     <svg viewBox="0 0 32 32" className={cn("size-7 shrink-0", className)} aria-hidden="true">
+      {/* Contorno da mesma cor com junção redonda: arredonda pontas e cantos sem mudar a silhueta. */}
       <path
-        d="M6 11 8.5 3.5 14 9.5h4l5.5-6L26 11v11a7 7 0 0 1-7 7h-6a7 7 0 0 1-7-7z"
-        className="fill-accent-fill"
+        d="M6 11 8.5 3.5l4.8 5.2q.7.8 1.7.8h2q1 0 1.7-.8l4.8-5.2L26 11v11a7 7 0 0 1-7 7h-6a7 7 0 0 1-7-7z"
+        className="fill-accent-fill stroke-accent-fill"
+        strokeWidth="2.2"
+        strokeLinejoin="round"
       />
       <path
         d="M11.5 17.5h.01M20.5 17.5h.01"

@@ -17,8 +17,14 @@ function headPolygon() {
   const pts = [
     [6, 11],
     [8.5, 3.5],
-    [14, 9.5],
-    [18, 9.5],
+    [13.3, 8.7],
+    [13.75, 9.2],
+    [14.4, 9.45],
+    [15, 9.5],
+    [17, 9.5],
+    [17.6, 9.45],
+    [18.25, 9.2],
+    [18.7, 8.7],
     [23.5, 3.5],
     [26, 11],
     [26, 22],
@@ -45,6 +51,18 @@ function inPolygon(x, y, poly) {
   return inside;
 }
 
+function nearEdge(x, y, poly, d) {
+  for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+    const [ax, ay] = poly[j];
+    const [bx, by] = poly[i];
+    const dx = bx - ax;
+    const dy = by - ay;
+    const t = Math.max(0, Math.min(1, ((x - ax) * dx + (y - ay) * dy) / (dx * dx + dy * dy || 1)));
+    if ((x - ax - t * dx) ** 2 + (y - ay - t * dy) ** 2 <= d * d) return true;
+  }
+  return false;
+}
+
 /** Cor do ponto (x, y) no espaço 32×32 do logo, ou null (fundo). */
 function logoColor(x, y) {
   const eye = (cx, cy) => (x - cx) ** 2 + (y - cy) ** 2 <= 1.45 ** 2;
@@ -52,7 +70,8 @@ function logoColor(x, y) {
   // boca: arco fino de (14,21.5) a (18,21.5) passando por (16,22.7)
   const my = 21.5 + 1.2 * (1 - ((x - 16) / 2) ** 2);
   if (x >= 14 && x <= 18 && Math.abs(y - my) <= 0.55) return INK;
-  return inPolygon(x, y, HEAD) ? ACCENT : null;
+  // Igual ao SVG: contorno de 2.2 com junção redonda = dentro do polígono ou a até 1.1 da borda.
+  return inPolygon(x, y, HEAD) || nearEdge(x, y, HEAD, 1.1) ? ACCENT : null;
 }
 
 /**
