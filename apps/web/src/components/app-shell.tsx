@@ -8,10 +8,12 @@ import {
   type LucideIcon,
   Monitor,
   Moon,
+  PieChart,
   Plus,
   Repeat,
   Settings,
   Sun,
+  Target,
   Wallet,
 } from "lucide-react";
 import { type ReactNode, useState } from "react";
@@ -31,6 +33,8 @@ export const NAV: NavItem[] = [
   { to: "/contas", label: "Contas", icon: Wallet, section: "Dinheiro" },
   { to: "/cartoes", label: "Cartões", icon: CreditCard, section: "Dinheiro", mobile: true },
   { to: "/recorrentes", label: "Recorrentes", icon: Repeat, section: "Planejamento" },
+  { to: "/orcamentos", label: "Orçamentos", icon: PieChart, section: "Planejamento" },
+  { to: "/metas", label: "Metas", icon: Target, section: "Planejamento" },
   { to: "/configuracoes", label: "Configurações", icon: Settings, section: "Conta" },
 ];
 

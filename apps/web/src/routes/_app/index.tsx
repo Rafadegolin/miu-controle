@@ -2,6 +2,7 @@ import { todayIn } from "@miu/core";
 import { useInfiniteQuery, useQueries, useQuery, useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Wallet } from "lucide-react";
+import { BudgetsCard } from "@/components/budgets-card";
 import { IconTile } from "@/components/category-icon";
 import { useQuickAdd } from "@/components/quick-add";
 import { StatementsCard } from "@/components/statements-card";
@@ -221,22 +222,25 @@ function Inicio() {
                 })}
               </div>
             </Card>
-            <Card>
-              <div className="flex items-center justify-between px-5 pt-4">
-                <h3 className="text-[15px] font-semibold">Últimos lançamentos</h3>
-                <Link to="/lancamentos" className="text-sm font-medium text-accent hover:underline">
-                  Ver todos
-                </Link>
-              </div>
-              <div className="mt-2">
-                {recentItems.length === 0 ? (
-                  <p className="px-5 py-8 text-center text-muted">Nada lançado ainda.</p>
-                ) : null}
-                {recentItems.map((tx) => (
-                  <TransactionRow key={tx.id} tx={tx} accounts={accMap} categories={catMap} showDate />
-                ))}
-              </div>
-            </Card>
+            <div className="flex flex-col gap-4">
+              <BudgetsCard month={month} />
+              <Card>
+                <div className="flex items-center justify-between px-5 pt-4">
+                  <h3 className="text-[15px] font-semibold">Últimos lançamentos</h3>
+                  <Link to="/lancamentos" className="text-sm font-medium text-accent hover:underline">
+                    Ver todos
+                  </Link>
+                </div>
+                <div className="mt-2">
+                  {recentItems.length === 0 ? (
+                    <p className="px-5 py-8 text-center text-muted">Nada lançado ainda.</p>
+                  ) : null}
+                  {recentItems.map((tx) => (
+                    <TransactionRow key={tx.id} tx={tx} accounts={accMap} categories={catMap} showDate />
+                  ))}
+                </div>
+              </Card>
+            </div>
           </div>
         </>
       )}

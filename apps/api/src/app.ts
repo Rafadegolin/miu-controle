@@ -6,8 +6,10 @@ import { notFound, onError } from "./lib/errors";
 import { contextMiddleware, type Deps, defaultDeps } from "./middleware/context";
 import { authRateLimit } from "./middleware/rate-limit";
 import { accountsRoutes } from "./routes/accounts";
+import { budgetsRoutes } from "./routes/budgets";
 import { cardsRoutes } from "./routes/cards";
 import { categoriesRoutes } from "./routes/categories";
+import { goalsRoutes } from "./routes/goals";
 import { health } from "./routes/health";
 import { me } from "./routes/me";
 import { recurringRoutes } from "./routes/recurring";
@@ -32,7 +34,9 @@ export function createApp(deps: Deps = defaultDeps) {
     .route("/categories", categoriesRoutes)
     .route("/transactions", transactionsRoutes)
     .route("/cards", cardsRoutes)
-    .route("/recurring", recurringRoutes);
+    .route("/recurring", recurringRoutes)
+    .route("/budgets", budgetsRoutes)
+    .route("/goals", goalsRoutes);
 
   app.notFound(notFound);
   app.onError(onError);

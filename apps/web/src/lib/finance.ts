@@ -1,11 +1,15 @@
 import type {
   Account,
+  BudgetMonth,
   CardOverview,
   Category,
   CreateAccount,
   CreateCategory,
+  CreateGoal,
   CreateRecurring,
   CreateTransaction,
+  Goal,
+  GoalContribution,
   MonthSummary,
   RecurringRule,
   Statement,
@@ -13,6 +17,7 @@ import type {
   TransactionPage,
   UpdateAccount,
   UpdateCategory,
+  UpdateGoal,
   UpdateRecurring,
   UpdateTransaction,
 } from "@miu/shared";
@@ -91,6 +96,7 @@ export function invalidateMoney(queryClient: QueryClient) {
     queryClient.invalidateQueries({ queryKey: ["summary"] }),
     queryClient.invalidateQueries({ queryKey: ["cards"] }),
     queryClient.invalidateQueries({ queryKey: ["recurring"] }),
+    queryClient.invalidateQueries({ queryKey: ["budgets"] }),
   ]);
 }
 
@@ -153,3 +159,43 @@ export async function deleteRecurring(id: string) {
   const res = await api.recurring[":id"].$delete({ param: { id } });
   if (!res.ok) await readJson(res);
 }
+
+/* ---------- orçamentos e metas ---------- */
+
+export const budgetsQuery = (month: string) =>
+  queryOptions({
+    queryKey: ["budgets", month],
+    queryFn: async () => readJson<BudgetMonth>(await api.budgets.$get({ query: { month } })),
+    staleTime: 30_000,
+  });
+
+export const setBudget = async (categoryId: string, month: string, amountCents: number | null) =>
+  readJson(await api.budgets[":categoryId"].$put({ param: { categoryId }, json: { month, amountCents } }));
+
+export const goalsQuery = queryOptions({
+  queryKey: ["goals"],
+  queryFn: async () => readJson<Goal[]>(await api.goals.$get()),
+  staleTime: 60_000,
+});
+
+export const goalHistoryQuery = (id: string) =>
+  queryOptions({
+    queryKey: ["goals", id, "history"],
+    queryFn: async () =>
+      readJson<GoalContribution[]>(await api.goals[":id"].contributions.$get({ param: { id } })),
+  });
+
+export const createGoal = async (body: CreateGoal) =>
+  readJson<Goal>(await api.goals.$post({ json: body as never }));
+export const updateGoal = async (id: string, body: UpdateGoal) =>
+  readJson<Goal>(await api.goals[":id"].$patch({ param: { id }, json: body }));
+export const toggleArchiveGoal = async (id: string) =>
+  readJson<Goal>(await api.goals[":id"].archive.$post({ param: { id } }));
+export async function deleteGoal(id: string) {
+  const res = await api.goals[":id"].$delete({ param: { id } });
+  if (!res.ok) await readJson(res);
+}
+export const contribute = async (id: string, amountCents: number, date: string) =>
+  readJson<Goal>(await api.goals[":id"].contributions.$post({ param: { id }, json: { amountCents, date } }));
+export const deleteContribution = async (id: string, cid: string) =>
+  readJson<Goal>(await api.goals[":id"].contributions[":cid"].$delete({ param: { id, cid } }));
