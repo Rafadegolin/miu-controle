@@ -28,7 +28,7 @@
   "hyperdrive": [
     {
       "binding": "HYPERDRIVE",
-      "id": "PREENCHER_COM_ID_DO_HYPERDRIVE"
+      "id": "ce70e8fb86834ce0b02fc1e34ea27198"
     }
   ],
 
@@ -42,6 +42,7 @@
   ],
 
   "vars": {
-    "APP_ENV": "production"
+    "APP_ENV": "production",
+    "APP_URL": "https://miu-controle.miu-api.workers.dev"
   }
 }

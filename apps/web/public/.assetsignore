@@ -1,0 +1,2 @@
+# Não publicar source maps (expõem o código-fonte)
+*.map
