@@ -507,52 +507,50 @@ function TransactionForm({
         </Alert>
       ) : null}
 
-      {editing && confirmDelete ? (
-        <div className="flex flex-col gap-2.5 rounded-xl border border-line bg-surface-2 p-3.5 text-sm">
-          <b>Excluir {isInstallment ? "parcela" : "este lançamento"}?</b>
-          {isInstallment && editing.installment ? (
-            <span className="text-muted">
-              Esta é a parcela {editing.installment.no} de {editing.installment.total}.
-            </span>
-          ) : null}
-          <div className="flex flex-wrap gap-2">
-            <Button
-              size="sm"
-              variant="danger"
-              loading={remove.isPending}
-              onClick={() => remove.mutate("one")}
-            >
-              {isInstallment ? "Só esta parcela" : "Excluir"}
+      <div className="sticky -bottom-5 -mx-5 -mb-5 mt-auto flex flex-wrap items-center justify-end gap-2.5 border-t border-line bg-surface px-5 pt-3.5 pb-[calc(14px+env(safe-area-inset-bottom))]">
+        {editing && confirmDelete ? (
+          <>
+            <div className="mr-auto min-w-0 text-sm">
+              <b className="block">Excluir {isInstallment ? "parcela" : "este lançamento"}?</b>
+              {isInstallment && editing.installment ? (
+                <span className="text-muted">
+                  Parcela {editing.installment.no} de {editing.installment.total}
+                </span>
+              ) : (
+                <span className="text-muted">Não dá para desfazer.</span>
+              )}
+            </div>
+            <Button variant="ghost" onClick={() => setConfirmDelete(false)}>
+              Voltar
             </Button>
             {isInstallment ? (
-              <Button
-                size="sm"
-                variant="danger"
-                loading={remove.isPending}
-                onClick={() => remove.mutate("following")}
-              >
+              <Button variant="danger" loading={remove.isPending} onClick={() => remove.mutate("following")}>
                 Esta e as próximas
               </Button>
             ) : null}
-            <Button size="sm" variant="ghost" onClick={() => setConfirmDelete(false)}>
+            <Button variant="danger" loading={remove.isPending} onClick={() => remove.mutate("one")}>
+              {isInstallment ? "Só esta" : "Excluir"}
+            </Button>
+          </>
+        ) : (
+          <>
+            {editing ? (
+              <Button variant="danger" className="mr-auto" onClick={() => setConfirmDelete(true)}>
+                <Trash2 className="size-4" aria-hidden /> Excluir
+              </Button>
+            ) : null}
+            <Button variant="ghost" onClick={onClose}>
               Cancelar
             </Button>
-          </div>
-        </div>
-      ) : null}
-
-      <div className="sticky bottom-0 -mx-5 -mb-5 mt-auto flex flex-wrap justify-end gap-2.5 border-t border-line bg-surface px-5 pt-3.5 pb-[calc(14px+env(safe-area-inset-bottom))]">
-        {editing && !confirmDelete ? (
-          <Button variant="danger" className="mr-auto" onClick={() => setConfirmDelete(true)}>
-            <Trash2 className="size-4" aria-hidden /> Excluir
-          </Button>
-        ) : null}
-        <Button variant="ghost" onClick={onClose}>
-          Cancelar
-        </Button>
-        <Button type="submit" variant="primary" loading={save.isPending}>
-          {editing ? "Salvar alterações" : parcelado ? `Salvar em ${d.installments}x` : "Salvar lançamento"}
-        </Button>
+            <Button type="submit" variant="primary" loading={save.isPending}>
+              {editing
+                ? "Salvar alterações"
+                : parcelado
+                  ? `Salvar em ${d.installments}x`
+                  : "Salvar lançamento"}
+            </Button>
+          </>
+        )}
       </div>
     </form>
   );

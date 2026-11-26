@@ -315,35 +315,35 @@ function RecurringForm({ rule, onClose }: { rule: RecurringRule | null; onClose:
         </Alert>
       ) : null}
 
-      {rule && confirmDelete ? (
-        <div className="flex flex-col gap-2.5 rounded-xl border border-line bg-surface-2 p-3.5 text-sm">
-          <b>Excluir "{rule.description}"?</b>
-          <span className="text-muted">
-            As previsões futuras somem. O que já aconteceu continua nos lançamentos.
-          </span>
-          <div className="flex gap-2">
-            <Button size="sm" variant="danger" loading={remove.isPending} onClick={() => remove.mutate()}>
+      <div className="sticky -bottom-5 -mx-5 -mb-5 mt-auto flex flex-wrap items-center justify-end gap-2.5 border-t border-line bg-surface px-5 pt-3.5 pb-[calc(14px+env(safe-area-inset-bottom))]">
+        {rule && confirmDelete ? (
+          <>
+            <div className="mr-auto min-w-0 text-sm">
+              <b className="block">Excluir esta recorrência?</b>
+              <span className="text-muted">As previsões futuras somem; o que já aconteceu fica.</span>
+            </div>
+            <Button variant="ghost" onClick={() => setConfirmDelete(false)}>
+              Voltar
+            </Button>
+            <Button variant="danger" loading={remove.isPending} onClick={() => remove.mutate()}>
               Excluir
             </Button>
-            <Button size="sm" variant="ghost" onClick={() => setConfirmDelete(false)}>
+          </>
+        ) : (
+          <>
+            {rule ? (
+              <Button variant="danger" className="mr-auto" onClick={() => setConfirmDelete(true)}>
+                <Trash2 className="size-4" aria-hidden /> Excluir
+              </Button>
+            ) : null}
+            <Button variant="ghost" onClick={onClose}>
               Cancelar
             </Button>
-          </div>
-        </div>
-      ) : null}
-
-      <div className="sticky bottom-0 -mx-5 -mb-5 mt-auto flex flex-wrap justify-end gap-2.5 border-t border-line bg-surface px-5 pt-3.5 pb-[calc(14px+env(safe-area-inset-bottom))]">
-        {rule && !confirmDelete ? (
-          <Button variant="danger" className="mr-auto" onClick={() => setConfirmDelete(true)}>
-            <Trash2 className="size-4" aria-hidden /> Excluir
-          </Button>
-        ) : null}
-        <Button variant="ghost" onClick={onClose}>
-          Cancelar
-        </Button>
-        <Button type="submit" variant="primary" loading={save.isPending}>
-          {rule ? "Salvar" : "Criar recorrência"}
-        </Button>
+            <Button type="submit" variant="primary" loading={save.isPending}>
+              {rule ? "Salvar" : "Criar recorrência"}
+            </Button>
+          </>
+        )}
       </div>
     </form>
   );

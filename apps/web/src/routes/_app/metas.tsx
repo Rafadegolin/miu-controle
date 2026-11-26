@@ -408,7 +408,7 @@ function GoalForm({ goal, onDone }: { goal: Goal | null; onDone: () => void }) {
         </div>
       ) : null}
 
-      <div className="sticky bottom-0 -mx-5 -mb-5 mt-auto flex justify-end gap-2.5 border-t border-line bg-surface px-5 pt-3.5 pb-[calc(14px+env(safe-area-inset-bottom))]">
+      <div className="sticky -bottom-5 -mx-5 -mb-5 mt-auto flex justify-end gap-2.5 border-t border-line bg-surface px-5 pt-3.5 pb-[calc(14px+env(safe-area-inset-bottom))]">
         <Button variant="ghost" onClick={onDone}>
           Cancelar
         </Button>
