@@ -5,8 +5,9 @@ import { useState } from "react";
 import { cn } from "@/lib/cn";
 import { archiveCategory, categoriesQuery, createCategory, updateCategory } from "@/lib/finance";
 import { ApiRequestError } from "@/lib/http";
-import { ICONS, IconTile } from "./category-icon";
+import { IconTile } from "./category-icon";
 import { Segmented } from "./controls";
+import { ICON_LABELS, MiuIcon } from "./miu-icons";
 import { Sheet } from "./sheet";
 import { toast } from "./toast";
 import { Alert, Button, Card, Field, Input } from "./ui";
@@ -148,12 +149,12 @@ function CategoryForm({
         <span className="text-[13px] font-medium text-muted">Ícone</span>
         <div className="grid grid-cols-7 gap-1.5">
           {CATEGORY_ICONS.map((name) => {
-            const Icon = ICONS[name];
             return (
               <button
                 key={name}
                 type="button"
-                aria-label={name}
+                aria-label={ICON_LABELS[name]}
+                title={ICON_LABELS[name]}
                 aria-pressed={icon === name}
                 onClick={() => setIcon(name)}
                 className={cn(
@@ -163,7 +164,7 @@ function CategoryForm({
                     : "border-line text-muted hover:bg-surface-2",
                 )}
               >
-                <Icon className="size-[18px]" />
+                <MiuIcon name={name} className="size-5" />
               </button>
             );
           })}

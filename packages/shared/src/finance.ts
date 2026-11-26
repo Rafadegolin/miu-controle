@@ -48,6 +48,21 @@ export const CATEGORY_ICONS = [
   "smartphone",
   "wrench",
   "ellipsis",
+  "pill",
+  "sparkles",
+  "shield",
+  "droplet",
+  "wifi",
+  "gamepad",
+  "music",
+  "book",
+  "bus",
+  "bike",
+  "beer",
+  "credit-card",
+  "banknote",
+  "coins",
+  "percent",
 ] as const;
 export type CategoryIcon = (typeof CATEGORY_ICONS)[number];
 
@@ -76,9 +91,9 @@ export const DEFAULT_CATEGORIES: { name: string; kind: CategoryKind; icon: Categ
   { name: "Assinaturas", kind: "expense", icon: "tv", color: "#7f9894" },
   { name: "Educação", kind: "expense", icon: "graduation-cap", color: "#4fbf7f" },
   { name: "Outros gastos", kind: "expense", icon: "ellipsis", color: "#7f9894" },
-  { name: "Salário", kind: "income", icon: "briefcase", color: "#1fbf8f" },
+  { name: "Salário", kind: "income", icon: "banknote", color: "#1fbf8f" },
   { name: "Freelas", kind: "income", icon: "zap", color: "#4aa9e8" },
-  { name: "Rendimentos", kind: "income", icon: "trending-up", color: "#a983ee" },
+  { name: "Rendimentos", kind: "income", icon: "coins", color: "#a983ee" },
   { name: "Outras receitas", kind: "income", icon: "ellipsis", color: "#7f9894" },
 ];
 

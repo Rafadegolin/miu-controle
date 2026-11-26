@@ -1,63 +1,24 @@
 import type { CategoryIcon as IconName } from "@miu/shared";
-import {
-  ArrowLeftRight,
-  Baby,
-  Briefcase,
-  Car,
-  Clapperboard,
-  Coffee,
-  Dumbbell,
-  Ellipsis,
-  Fuel,
-  Gift,
-  GraduationCap,
-  HeartPulse,
-  House,
-  type LucideIcon,
-  PawPrint,
-  PiggyBank,
-  Plane,
-  Receipt,
-  Shirt,
-  ShoppingBag,
-  ShoppingCart,
-  Smartphone,
-  TrendingUp,
-  Tv,
-  Utensils,
-  Wrench,
-  Zap,
-} from "lucide-react";
+import { ArrowLeftRight } from "lucide-react";
 import { cn } from "@/lib/cn";
+import { MiuIcon } from "./miu-icons";
 
-/** Mapa fechado: importar ícone por nome dinâmico puxaria a biblioteca inteira. */
-export const ICONS: Record<IconName, LucideIcon> = {
-  house: House,
-  "shopping-cart": ShoppingCart,
-  utensils: Utensils,
-  car: Car,
-  "heart-pulse": HeartPulse,
-  clapperboard: Clapperboard,
-  "shopping-bag": ShoppingBag,
-  tv: Tv,
-  "graduation-cap": GraduationCap,
-  briefcase: Briefcase,
-  zap: Zap,
-  "trending-up": TrendingUp,
-  "piggy-bank": PiggyBank,
-  gift: Gift,
-  plane: Plane,
-  "paw-print": PawPrint,
-  baby: Baby,
-  dumbbell: Dumbbell,
-  receipt: Receipt,
-  shirt: Shirt,
-  fuel: Fuel,
-  coffee: Coffee,
-  smartphone: Smartphone,
-  wrench: Wrench,
-  ellipsis: Ellipsis,
-};
+/** Ícone da categoria (próprio do Miu) ou setas, em transferências. */
+function Glyph({
+  icon,
+  transfer,
+  className,
+}: {
+  icon?: IconName | undefined;
+  transfer?: boolean;
+  className?: string;
+}) {
+  return transfer ? (
+    <ArrowLeftRight className={className} aria-hidden />
+  ) : (
+    <MiuIcon name={icon ?? "ellipsis"} className={className} />
+  );
+}
 
 /** Quadrado com o ícone na cor da categoria (fundo tingido, funciona nos dois temas). */
 export function IconTile({
@@ -71,7 +32,6 @@ export function IconTile({
   transfer?: boolean;
   className?: string;
 }) {
-  const Icon = transfer ? ArrowLeftRight : ICONS[icon ?? "ellipsis"];
   return (
     <span
       className={cn(
@@ -81,7 +41,7 @@ export function IconTile({
       style={{ "--c": color ?? "var(--muted)" } as React.CSSProperties}
       aria-hidden
     >
-      <Icon className="size-[18px]" />
+      <Glyph icon={icon} transfer={transfer} className="size-[18px]" />
     </span>
   );
 }
@@ -98,13 +58,12 @@ export function CategoryBadge({
   name: string;
   transfer?: boolean;
 }) {
-  const Icon = transfer ? ArrowLeftRight : ICONS[icon ?? "ellipsis"];
   return (
     <span
       className="inline-flex max-w-full items-center gap-1.5 rounded-full bg-[color-mix(in_srgb,var(--c)_13%,transparent)] py-1 pr-2.5 pl-2 text-[13px] font-medium text-fg-2"
       style={{ "--c": color ?? "var(--muted)" } as React.CSSProperties}
     >
-      <Icon className="size-3.5 shrink-0 text-(--c)" aria-hidden />
+      <Glyph icon={icon} transfer={transfer} className="size-3.5 shrink-0 text-(--c)" />
       <span className="truncate">{name}</span>
     </span>
   );
