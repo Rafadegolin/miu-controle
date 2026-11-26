@@ -6,7 +6,7 @@ import { type FormEvent, useState } from "react";
 import { AlertsCard, DeleteAccountCard } from "@/components/account-danger";
 import { CategoriesManager } from "@/components/categories-manager";
 import { Alert, Button, Card, Field, Input } from "@/components/ui";
-import { authClient } from "@/lib/auth-client";
+import { authClient, authErrorMessage } from "@/lib/auth-client";
 import { cn } from "@/lib/cn";
 import { ApiRequestError, meQuery, updateMe } from "@/lib/me";
 import { getTheme, setTheme, type Theme } from "@/lib/theme";
@@ -20,6 +20,7 @@ function Configuracoes() {
   return (
     <div className="grid gap-4 lg:grid-cols-2">
       <Perfil />
+      <Senha />
       <Aparencia />
       <AlertsCard />
       <CategoriesManager />
@@ -93,6 +94,109 @@ function Perfil() {
         <div>
           <Button type="submit" variant="primary" loading={save.isPending} disabled={!name.trim()}>
             Salvar
+          </Button>
+        </div>
+      </form>
+    </Card>
+  );
+}
+
+function Senha() {
+  const queryClient = useQueryClient();
+  const [current, setCurrent] = useState("");
+  const [next, setNext] = useState("");
+  const [confirm, setConfirm] = useState("");
+  const [others, setOthers] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const change = useMutation({
+    mutationFn: async () => {
+      const { error } = await authClient.changePassword({
+        currentPassword: current,
+        newPassword: next,
+        revokeOtherSessions: others,
+      });
+      if (error) throw new Error(authErrorMessage(error) ?? "Não foi possível trocar a senha.");
+    },
+    onSuccess: () => {
+      setCurrent("");
+      setNext("");
+      setConfirm("");
+      setError(null);
+      void queryClient.invalidateQueries({ queryKey: ["sessions"] });
+    },
+    onError: (e) => setError(e.message),
+  });
+
+  function onSubmit(e: FormEvent) {
+    e.preventDefault();
+    change.reset();
+    if (next.length < 10) return setError("A senha nova precisa ter pelo menos 10 caracteres.");
+    if (next !== confirm) return setError("A confirmação não bate com a senha nova.");
+    if (next === current) return setError("A senha nova precisa ser diferente da atual.");
+    setError(null);
+    change.mutate();
+  }
+
+  return (
+    <Card className="p-5">
+      <form className="flex flex-col gap-4" onSubmit={onSubmit} noValidate>
+        <h3 className="font-semibold">Senha</h3>
+        <Field label="Senha atual">
+          {(p) => (
+            <Input
+              {...p}
+              type="password"
+              autoComplete="current-password"
+              value={current}
+              onChange={(e) => setCurrent(e.target.value)}
+            />
+          )}
+        </Field>
+        <Field label="Senha nova" hint="Pelo menos 10 caracteres.">
+          {(p) => (
+            <Input
+              {...p}
+              type="password"
+              autoComplete="new-password"
+              value={next}
+              onChange={(e) => setNext(e.target.value)}
+            />
+          )}
+        </Field>
+        <Field label="Repita a senha nova">
+          {(p) => (
+            <Input
+              {...p}
+              type="password"
+              autoComplete="new-password"
+              value={confirm}
+              onChange={(e) => setConfirm(e.target.value)}
+            />
+          )}
+        </Field>
+        <label className="flex items-center gap-2.5 text-sm text-fg-2">
+          <input
+            type="checkbox"
+            checked={others}
+            onChange={(e) => setOthers(e.target.checked)}
+            className="size-[18px] accent-primary"
+          />
+          Sair dos outros aparelhos
+        </label>
+        {error ? <Alert>{error}</Alert> : null}
+        {change.isSuccess ? (
+          <Alert tone="ok">
+            Senha trocada.{others ? " Os outros aparelhos precisam entrar de novo." : ""}
+          </Alert>
+        ) : null}
+        <div>
+          <Button
+            type="submit"
+            variant="primary"
+            loading={change.isPending}
+            disabled={!current || !next || !confirm}
+          >
+            Trocar senha
           </Button>
         </div>
       </form>

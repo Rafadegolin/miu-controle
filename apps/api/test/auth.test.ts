@@ -1,3 +1,4 @@
+import { eq, schema } from "@miu/db";
 import { afterEach, describe, expect, it } from "vitest";
 import { cookiesFrom, linkIn, setup, signUpVerified } from "./harness";
 
@@ -98,6 +99,63 @@ describe("cadastro e login", () => {
     });
     expect(login.status).toBe(200);
     expect(cookiesFrom(login)).toContain("session_token");
+  });
+});
+
+describe("trocar senha logado", () => {
+  it("exige a senha atual, grava com PBKDF2 e pode derrubar os outros aparelhos", async () => {
+    t = await setup();
+    const aqui = await signUpVerified(t);
+    const outro = cookiesFrom(
+      await t.req("/api/auth/sign-in/email", {
+        method: "POST",
+        json: { email: "ana@exemplo.com", password: "senha-bem-forte-123" },
+      }),
+    );
+    const change = (cookie: string, body: object) =>
+      t.req("/api/auth/change-password", { method: "POST", cookie, json: body });
+
+    // senha atual errada e senha nova curta são recusadas
+    expect(
+      (await change(aqui, { currentPassword: "errada-errada-1", newPassword: "nova-senha-forte-789" }))
+        .status,
+    ).toBe(400);
+    expect(
+      (await change(aqui, { currentPassword: "senha-bem-forte-123", newPassword: "curta" })).status,
+    ).toBe(400);
+    // sem sessão, nada feito
+    expect(
+      (await change("", { currentPassword: "senha-bem-forte-123", newPassword: "nova-senha-forte-789" }))
+        .status,
+    ).toBe(401);
+
+    const ok = await change(aqui, {
+      currentPassword: "senha-bem-forte-123",
+      newPassword: "nova-senha-forte-789",
+      revokeOtherSessions: true,
+    });
+    expect(ok.status).toBe(200);
+    const aquiNovo = cookiesFrom(ok, aqui);
+
+    const [account] = await t.db
+      .select()
+      .from(schema.account)
+      .where(eq(schema.account.providerId, "credential"));
+    expect(account?.password).toMatch(/^pbkdf2_sha256\$/);
+
+    expect((await t.req("/api/me", { cookie: outro })).status).toBe(401);
+    expect((await t.req("/api/me", { cookie: aquiNovo })).status).toBe(200);
+
+    const velha = await t.req("/api/auth/sign-in/email", {
+      method: "POST",
+      json: { email: "ana@exemplo.com", password: "senha-bem-forte-123" },
+    });
+    expect(velha.status).toBe(401);
+    const nova = await t.req("/api/auth/sign-in/email", {
+      method: "POST",
+      json: { email: "ana@exemplo.com", password: "nova-senha-forte-789" },
+    });
+    expect(nova.status).toBe(200);
   });
 });
 
