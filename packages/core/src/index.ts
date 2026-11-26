@@ -4,5 +4,6 @@ export * from "./insights";
 export * from "./installments";
 export * from "./money";
 export * from "./planning";
+export * from "./quick-entry";
 export * from "./recurrence";
 export * from "./statement";

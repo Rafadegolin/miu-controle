@@ -1,4 +1,11 @@
-import { addYearMonth, dateToMonth, monthToDate, planInstallments, statementMonthFor } from "@miu/core";
+import {
+  addDays,
+  addYearMonth,
+  dateToMonth,
+  monthToDate,
+  planInstallments,
+  statementMonthFor,
+} from "@miu/core";
 import { and, type Db, desc, eq, gte, ilike, inArray, lt, or, schema, sql } from "@miu/db";
 import {
   type BulkResult,
@@ -7,6 +14,8 @@ import {
   deleteTransactionQuery,
   listTransactionsQuery,
   type MonthSummary,
+  type QuickSuggestion,
+  type QuickSuggestions,
   type Transaction,
   type TransactionPage,
   updateTransactionSchema,
@@ -152,6 +161,72 @@ export const transactionsRoutes = new Hono<App>()
     const body: TransactionPage = {
       items: page.map(toTransactionDto),
       nextCursor: rows.length > q.limit && last ? encodeCursor(last) : null,
+    };
+    return c.json(body);
+  })
+  /**
+   * Sugestões para o lançamento rápido, aprendidas dos últimos 180 dias do próprio usuário:
+   * descrições usadas (com a categoria e a conta mais comuns), as mais frequentes e o último usado.
+   */
+  .get("/suggestions", async (c) => {
+    const db = c.var.db();
+    const userId = c.var.user.id;
+    const today = await userToday(db, userId);
+    const rows = await db
+      .select({
+        description: transactions.description,
+        kind: transactions.kind,
+        categoryId: transactions.categoryId,
+        accountId: transactions.accountId,
+        amountCents: transactions.amountCents,
+      })
+      .from(transactions)
+      .where(
+        and(
+          eq(transactions.userId, userId),
+          gte(transactions.date, addDays(today, -180)),
+          sql`${transactions.kind} <> 'transfer'`,
+          sql`${transactions.source} <> 'recurring'`,
+        ),
+      )
+      .orderBy(desc(transactions.date), desc(transactions.createdAt))
+      .limit(3000);
+
+    const mode = <T>(list: T[]) => {
+      const counts = new Map<T, number>();
+      for (const v of list) counts.set(v, (counts.get(v) ?? 0) + 1);
+      let best: T | undefined;
+      let n = 0;
+      for (const [v, k] of counts) if (k > n) [best, n] = [v, k];
+      return { value: best as T, share: list.length ? n / list.length : 0 };
+    };
+    const groups = new Map<string, typeof rows>();
+    for (const r of rows) {
+      const key = r.description.trim().toLowerCase();
+      if (!key) continue;
+      groups.set(key, [...(groups.get(key) ?? []), r]);
+    }
+    const history: QuickSuggestion[] = [...groups.values()].map((list) => {
+      const amount = mode(list.map((r) => r.amountCents));
+      const first = list[0] as (typeof rows)[number];
+      return {
+        description: first.description.trim(),
+        kind: mode(list.map((r) => r.kind)).value as QuickSuggestion["kind"],
+        categoryId: mode(list.map((r) => r.categoryId)).value ?? null,
+        accountId: mode(list.map((r) => r.accountId)).value,
+        amountCents: list.length >= 2 && amount.share >= 0.6 ? amount.value : null,
+        count: list.length,
+      };
+    });
+    history.sort((a, b) => b.count - a.count);
+    const lastOf = (kind: "expense" | "income") => {
+      const r = rows.find((x) => x.kind === kind);
+      return r ? { accountId: r.accountId, categoryId: r.categoryId } : null;
+    };
+    const body: QuickSuggestions = {
+      frequent: history.filter((h) => h.count >= 2).slice(0, 8),
+      history: history.slice(0, 300),
+      last: { expense: lastOf("expense"), income: lastOf("income") },
     };
     return c.json(body);
   })

@@ -1,5 +1,7 @@
 import type { Transaction } from "@miu/shared";
+import { useQuery } from "@tanstack/react-query";
 import { createContext, type ReactNode, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { suggestionsQuery } from "@/lib/finance";
 import { type Draft, TransactionSheet } from "./transaction-sheet";
 
 type QuickAdd = {
@@ -32,6 +34,18 @@ export function QuickAddProvider({ children }: { children: ReactNode }) {
   );
   const openEdit = useCallback((tx: Transaction) => setState({ open: true, editing: tx }), []);
   const value = useMemo(() => ({ openNew, openEdit }), [openNew, openEdit]);
+  // Histórico pronto antes de abrir o painel: a linha mágica já reconhece o que você costuma lançar.
+  useQuery(suggestionsQuery);
+
+  // Atalhos do ícone do app (?novo=gasto | receita): abre o lançamento e limpa o endereço.
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    const novo = url.searchParams.get("novo");
+    if (!novo) return;
+    url.searchParams.delete("novo");
+    window.history.replaceState(window.history.state, "", url.pathname + url.search + url.hash);
+    openNew(novo === "receita" ? { kind: "income" } : {});
+  }, [openNew]);
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {

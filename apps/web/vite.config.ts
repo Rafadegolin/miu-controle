@@ -31,9 +31,11 @@ export default defineConfig({
           { src: "/icons/icon-512.png", sizes: "512x512", type: "image/png" },
           { src: "/icons/icon-maskable-512.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
         ],
+        // Segurar o ícone do app no celular: abre direto no lançamento.
         shortcuts: [
+          { name: "Novo gasto", short_name: "Gasto", url: "/inicio?novo=gasto" },
+          { name: "Nova receita", short_name: "Receita", url: "/inicio?novo=receita" },
           { name: "Lançamentos", short_name: "Lançamentos", url: "/lancamentos" },
-          { name: "Cartões", short_name: "Cartões", url: "/cartoes" },
         ],
       },
       workbox: {

@@ -1,23 +1,25 @@
 import { Check } from "lucide-react";
 import { useSyncExternalStore } from "react";
 
-type Toast = { id: number; message: string };
+type ToastAction = { label: string; onClick: () => void };
+type Toast = { id: number; message: string; action?: ToastAction | undefined };
 let toasts: Toast[] = [];
 let seq = 0;
 const listeners = new Set<() => void>();
 const emit = () => {
   for (const l of listeners) l();
 };
-
-/** Aviso curto de confirmação ("Lançamento salvo"). */
-export function toast(message: string) {
-  const id = ++seq;
-  toasts = [...toasts, { id, message }];
+const dismiss = (id: number) => {
+  toasts = toasts.filter((t) => t.id !== id);
   emit();
-  setTimeout(() => {
-    toasts = toasts.filter((t) => t.id !== id);
-    emit();
-  }, 2600);
+};
+
+/** Aviso curto ("Lançamento salvo"). Com `action`, mostra um botão (ex.: Desfazer) e fica mais tempo. */
+export function toast(message: string, action?: ToastAction) {
+  const id = ++seq;
+  toasts = [...toasts, { id, message, action }];
+  emit();
+  setTimeout(() => dismiss(id), action ? 6000 : 2600);
 }
 
 export function Toaster() {
@@ -36,10 +38,22 @@ export function Toaster() {
       {list.map((t) => (
         <div
           key={t.id}
-          className="flex items-center gap-2 rounded-xl bg-fg px-4 py-2.5 text-sm font-medium text-bg shadow-lg"
+          className="flex items-center gap-2 rounded-xl bg-fg py-2.5 pr-2.5 pl-4 text-sm font-medium text-bg shadow-lg"
         >
-          <Check className="size-4" aria-hidden />
-          {t.message}
+          <Check className="size-4 shrink-0" aria-hidden />
+          <span className="pr-1.5">{t.message}</span>
+          {t.action ? (
+            <button
+              type="button"
+              onClick={() => {
+                dismiss(t.id);
+                t.action?.onClick();
+              }}
+              className="pointer-events-auto rounded-lg px-2.5 py-1 font-semibold text-accent-fill hover:bg-[color-mix(in_srgb,var(--bg)_14%,transparent)]"
+            >
+              {t.action.label}
+            </button>
+          ) : null}
         </div>
       ))}
     </div>

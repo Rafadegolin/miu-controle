@@ -22,6 +22,7 @@ import type {
   MonthSummary,
   Pace,
   PreviewImport,
+  QuickSuggestions,
   RecurringRule,
   RecurringYear,
   Statement,
@@ -113,6 +114,7 @@ export function invalidateMoney(queryClient: QueryClient) {
     queryClient.invalidateQueries({ queryKey: ["reports"] }),
     queryClient.invalidateQueries({ queryKey: ["import-batches"] }),
     queryClient.invalidateQueries({ queryKey: ["pace"] }),
+    queryClient.invalidateQueries({ queryKey: ["suggestions"] }),
     queryClient.invalidateQueries({ queryKey: ["recurring-year"] }),
   ]);
 }
@@ -280,3 +282,9 @@ export const paceQuery = (month?: string) =>
     queryFn: async () => readJson<Pace>(await api.insights.pace.$get({ query: month ? { month } : {} })),
     staleTime: 30_000,
   });
+
+export const suggestionsQuery = queryOptions({
+  queryKey: ["suggestions"],
+  queryFn: async () => readJson<QuickSuggestions>(await api.transactions.suggestions.$get()),
+  staleTime: 5 * 60_000,
+});

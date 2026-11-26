@@ -387,3 +387,24 @@ export type MonthSummary = {
   /** Gastos (realizado + previsto) por categoria, do maior para o menor. */
   byCategory: { categoryId: string | null; postedCents: number; plannedCents: number }[];
 };
+
+/* ---------- lançamento rápido ---------- */
+
+export type QuickSuggestion = {
+  description: string;
+  kind: "expense" | "income";
+  categoryId: string | null;
+  accountId: string;
+  /** Valor que se repete (≥ 60% das vezes), senão null. */
+  amountCents: number | null;
+  count: number;
+};
+
+export type QuickSuggestions = {
+  /** Os mais lançados (2+ vezes), para os atalhos de um toque. */
+  frequent: QuickSuggestion[];
+  /** Todas as descrições recentes, para a linha mágica reconhecer. */
+  history: QuickSuggestion[];
+  /** Último usado em cada tipo: vira o padrão do formulário. */
+  last: Record<"expense" | "income", { accountId: string; categoryId: string | null } | null>;
+};

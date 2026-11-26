@@ -1,8 +1,16 @@
-import { addDays, planInstallments, statementMonthFor, todayIn } from "@miu/core";
-import type { Account, Transaction, TransactionKind } from "@miu/shared";
+import {
+  addDays,
+  formatBRL,
+  parseQuickEntry,
+  planInstallments,
+  resolveQuickEntry,
+  statementMonthFor,
+  todayIn,
+} from "@miu/core";
+import type { Account, QuickSuggestion, Transaction, TransactionKind } from "@miu/shared";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Trash2 } from "lucide-react";
-import { useId, useState } from "react";
+import { Sparkles, Trash2 } from "lucide-react";
+import { useId, useRef, useState } from "react";
 import {
   accountsQuery,
   categoriesQuery,
@@ -10,11 +18,13 @@ import {
   createTransaction,
   deleteTransaction,
   invalidateMoney,
+  suggestionsQuery,
   updateTransaction,
 } from "@/lib/finance";
 import { MONTHS, money, monthShort } from "@/lib/format";
 import { ApiRequestError } from "@/lib/http";
 import { meQuery } from "@/lib/me";
+import { IconTile } from "./category-icon";
 import { AmountInput, Chip, Segmented, Switch } from "./controls";
 import { Sheet } from "./sheet";
 import { toast } from "./toast";
@@ -74,6 +84,9 @@ function TransactionForm({
   const banks = accounts.filter((a) => !a.archived && !a.card);
   const cards = accounts.filter((a) => !a.archived && a.card);
   const all = [...banks, ...cards];
+  const { data: suggestions } = useQuery({ ...suggestionsQuery, enabled: !editing });
+  const lastExpense = suggestions?.last.expense?.accountId;
+  const usable = (id: string | undefined) => (id && all.some((a) => a.id === id) ? id : undefined);
 
   const [d, setD] = useState<Draft>(() =>
     editing
@@ -91,7 +104,7 @@ function TransactionForm({
       : {
           kind: "expense",
           cents: 0,
-          accountId: banks[0]?.id ?? cards[0]?.id ?? "",
+          accountId: usable(lastExpense) ?? banks[0]?.id ?? cards[0]?.id ?? "",
           toAccountId: (banks[1] ?? cards[0])?.id ?? "",
           categoryId: "",
           date: today,
@@ -102,6 +115,10 @@ function TransactionForm({
         },
   );
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [quick, setQuick] = useState("");
+  const [hint, setHint] = useState<string | null>(null);
+  const quickRef = useRef<HTMLInputElement>(null);
+  const again = useRef(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const set = (patch: Partial<Draft>) => setD((x) => ({ ...x, ...patch }));
 
@@ -121,11 +138,109 @@ function TransactionForm({
     set(patch);
   }
 
-  const done = async (message: string) => {
+  const done = async (message: string, undo?: () => Promise<void>) => {
     await invalidateMoney(queryClient);
-    toast(message);
+    toast(
+      message,
+      undo
+        ? {
+            label: "Desfazer",
+            onClick: () => {
+              void undo().then(async () => {
+                await invalidateMoney(queryClient);
+                toast("Lançamento desfeito");
+              });
+            },
+          }
+        : undefined,
+    );
+    if (again.current) {
+      again.current = false;
+      setQuick("");
+      setHint(null);
+      setErrors({});
+      setD((x) => ({
+        ...x,
+        cents: 0,
+        description: "",
+        categoryId: "",
+        installments: 1,
+        date: today,
+        repeat: false,
+      }));
+      quickRef.current?.focus();
+      return;
+    }
     onClose();
   };
+
+  /** Linha mágica: interpreta o texto e preenche o formulário abaixo. */
+  function applyQuick(text: string) {
+    setQuick(text);
+    if (!text.trim()) {
+      setHint(null);
+      return;
+    }
+    const p = parseQuickEntry(text, today);
+    const r = resolveQuickEntry(p.words, {
+      accounts: all.map((a) => ({ id: a.id, name: a.name, isCard: Boolean(a.card) })),
+      categories: categories
+        .filter((c) => !c.archived)
+        .map((c) => ({ id: c.id, name: c.name, kind: c.kind as "expense" | "income" })),
+      history: suggestions?.history ?? [],
+    });
+    const kind: TransactionKind = p.income
+      ? "income"
+      : (r.kind ?? (d.kind === "income" ? "income" : "expense"));
+    const accountId =
+      r.accountId && all.some((a) => a.id === r.accountId)
+        ? r.accountId
+        : kind === "income"
+          ? (usable(suggestions?.last.income?.accountId) ?? banks[0]?.id ?? d.accountId)
+          : d.kind === "transfer"
+            ? (usable(lastExpense) ?? d.accountId)
+            : d.accountId;
+    const cat = categories.find((c) => c.id === r.categoryId && c.kind === kind);
+    const acc = all.find((a) => a.id === accountId);
+    setD((x) => ({
+      ...x,
+      kind,
+      cents: p.amountCents ?? 0,
+      description: r.description,
+      categoryId: cat?.id ?? "",
+      accountId,
+      date: p.date,
+      installments: p.installments && acc?.card && kind === "expense" ? p.installments : 1,
+    }));
+    const parts = [
+      p.amountCents ? formatBRL(p.amountCents) : null,
+      cat ? `${cat.name}${r.source === "history" ? " (do seu histórico)" : ""}` : null,
+      acc?.name ?? null,
+      p.date === today
+        ? "hoje"
+        : p.date === addDays(today, -1)
+          ? "ontem"
+          : p.date.split("-").reverse().join("/"),
+      p.installments && acc?.card ? `em ${p.installments}x` : null,
+    ].filter(Boolean);
+    setHint(parts.join(" · "));
+  }
+
+  function pickSuggestion(sg: QuickSuggestion) {
+    const value = sg.amountCents
+      ? (sg.amountCents / 100).toLocaleString("pt-BR", { minimumFractionDigits: 2 })
+      : "";
+    const text = value ? `${value} ${sg.description}` : `${sg.description} `;
+    applyQuick(text);
+    requestAnimationFrame(() => {
+      const el = quickRef.current;
+      if (!el) return;
+      el.focus();
+      // sem valor salvo: cursor no começo para digitar o valor
+      const pos = value ? text.length : 0;
+      el.setSelectionRange(pos, pos);
+    });
+  }
 
   const save = useMutation({
     mutationFn: async () => {
@@ -197,6 +312,9 @@ function TransactionForm({
               : tx.status === "planned"
                 ? "Previsão salva"
                 : "Lançamento salvo",
+        !editing && !d.repeat && "id" in tx && typeof tx.id === "string"
+          ? () => deleteTransaction(tx.id as string, parcelado ? "following" : "one")
+          : undefined,
       ),
   });
 
@@ -253,6 +371,62 @@ function TransactionForm({
         submit();
       }}
     >
+      {!editing ? (
+        <div className="flex flex-col gap-2">
+          {suggestions?.frequent.length ? (
+            <div className="-mx-5 flex gap-2 overflow-x-auto px-5 pb-1">
+              {suggestions.frequent.map((sg) => {
+                const c = categories.find((x) => x.id === sg.categoryId);
+                return (
+                  <button
+                    key={sg.description}
+                    type="button"
+                    onClick={() => pickSuggestion(sg)}
+                    className="flex shrink-0 items-center gap-2 rounded-full border border-line-strong bg-surface py-1 pr-3 pl-1 text-sm hover:bg-surface-2"
+                  >
+                    <IconTile
+                      icon={c?.icon}
+                      color={c?.color}
+                      className="size-6 rounded-full [&_svg]:size-3.5"
+                    />
+                    <span className="max-w-[140px] truncate">{sg.description}</span>
+                    {sg.amountCents ? <span className="num text-muted">{money(sg.amountCents)}</span> : null}
+                  </button>
+                );
+              })}
+            </div>
+          ) : null}
+          <div className="relative">
+            <Sparkles
+              className="pointer-events-none absolute top-1/2 left-3.5 size-[18px] -translate-y-1/2 text-primary"
+              aria-hidden
+            />
+            <input
+              ref={quickRef}
+              value={quick}
+              onChange={(e) => applyQuick(e.target.value)}
+              // biome-ignore lint/a11y/noAutofocus: lançar rápido começa por aqui
+              autoFocus
+              autoComplete="off"
+              enterKeyHint="done"
+              aria-label="Lançamento rápido"
+              aria-describedby={`${uid}-quick`}
+              placeholder="Ex.: 45 ifood · +3000 salário · 120 mercado ontem"
+              className="h-12 w-full rounded-control border border-line-strong bg-surface-2 pr-3 pl-10 text-[16px] outline-none focus:border-primary focus:bg-surface"
+            />
+          </div>
+          <p id={`${uid}-quick`} className="min-h-5 text-[13px] text-muted" aria-live="polite">
+            {hint ? (
+              <>
+                Entendi: <span className="font-medium text-fg-2">{hint}</span>. Enter salva.
+              </>
+            ) : (
+              "Escreva valor e descrição; o Miu completa categoria e conta pelo seu histórico."
+            )}
+          </p>
+        </div>
+      ) : null}
+
       <Segmented
         label="Tipo"
         value={d.kind}
@@ -277,7 +451,7 @@ function TransactionForm({
           cents={d.cents}
           onChange={(cents) => set({ cents })}
           invalid={!!errors.amount}
-          autoFocus
+          autoFocus={!!editing}
         />
         {errors.amount ? <p className="text-[13px] text-danger">{errors.amount}</p> : null}
       </div>
@@ -539,9 +713,23 @@ function TransactionForm({
                 <Trash2 className="size-4" aria-hidden /> Excluir
               </Button>
             ) : null}
-            <Button variant="ghost" onClick={onClose}>
-              Cancelar
-            </Button>
+            {editing || d.repeat ? (
+              <Button variant="ghost" onClick={onClose}>
+                Cancelar
+              </Button>
+            ) : (
+              <Button
+                variant="ghost"
+                disabled={save.isPending}
+                onClick={() => {
+                  again.current = true;
+                  submit();
+                }}
+                title="Salva e já abre um novo lançamento"
+              >
+                Salvar e novo
+              </Button>
+            )}
             <Button type="submit" variant="primary" loading={save.isPending}>
               {editing
                 ? "Salvar alterações"
