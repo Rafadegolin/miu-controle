@@ -10,6 +10,7 @@ import { cardsRoutes } from "./routes/cards";
 import { categoriesRoutes } from "./routes/categories";
 import { health } from "./routes/health";
 import { me } from "./routes/me";
+import { recurringRoutes } from "./routes/recurring";
 import { transactionsRoutes } from "./routes/transactions";
 
 export function createApp(deps: Deps = defaultDeps) {
@@ -30,7 +31,8 @@ export function createApp(deps: Deps = defaultDeps) {
     .route("/accounts", accountsRoutes)
     .route("/categories", categoriesRoutes)
     .route("/transactions", transactionsRoutes)
-    .route("/cards", cardsRoutes);
+    .route("/cards", cardsRoutes)
+    .route("/recurring", recurringRoutes);
 
   app.notFound(notFound);
   app.onError(onError);

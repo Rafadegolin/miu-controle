@@ -2,12 +2,14 @@ import type { Me } from "@miu/shared";
 import { Link, useRouterState } from "@tanstack/react-router";
 import {
   CreditCard,
+  Ellipsis,
   Home,
   List,
   type LucideIcon,
   Monitor,
   Moon,
   Plus,
+  Repeat,
   Settings,
   Sun,
   Wallet,
@@ -16,6 +18,7 @@ import { type ReactNode, useState } from "react";
 import { cn } from "@/lib/cn";
 import { getTheme, setTheme, type Theme } from "@/lib/theme";
 import { QuickAddProvider, useQuickAdd } from "./quick-add";
+import { Sheet } from "./sheet";
 import { Toaster } from "./toast";
 import { Logo } from "./ui";
 
@@ -25,8 +28,9 @@ type NavItem = { to: string; label: string; icon: LucideIcon; section?: string; 
 export const NAV: NavItem[] = [
   { to: "/", label: "Início", icon: Home, mobile: true },
   { to: "/lancamentos", label: "Lançamentos", icon: List, mobile: true },
-  { to: "/contas", label: "Contas", icon: Wallet, section: "Dinheiro", mobile: true },
+  { to: "/contas", label: "Contas", icon: Wallet, section: "Dinheiro" },
   { to: "/cartoes", label: "Cartões", icon: CreditCard, section: "Dinheiro", mobile: true },
+  { to: "/recorrentes", label: "Recorrentes", icon: Repeat, section: "Planejamento" },
   { to: "/configuracoes", label: "Configurações", icon: Settings, section: "Conta" },
 ];
 
@@ -83,7 +87,10 @@ function Shell({ me, children }: { me: Me; children: ReactNode }) {
   const current = NAV.find((n) => (n.to === "/" ? pathname === "/" : pathname.startsWith(n.to)));
   const { openNew } = useQuickAdd();
   const mobile = NAV.filter((n) => n.mobile);
-  const half = Math.ceil(mobile.length / 2);
+  const more = NAV.filter((n) => !n.mobile);
+  const half = Math.ceil((mobile.length + 1) / 2);
+  const [moreOpen, setMoreOpen] = useState(false);
+  const moreActive = more.includes(current as NavItem);
   let lastSection: string | undefined;
 
   return (
@@ -159,7 +166,7 @@ function Shell({ me, children }: { me: Me; children: ReactNode }) {
 
       <nav
         className="fixed inset-x-0 bottom-0 z-25 grid border-t border-line bg-surface px-2 pt-1.5 pb-[calc(6px+env(safe-area-inset-bottom))] lg:hidden"
-        style={{ gridTemplateColumns: `repeat(${mobile.length + 1}, minmax(0, 1fr))` }}
+        style={{ gridTemplateColumns: `repeat(${mobile.length + 2}, minmax(0, 1fr))` }}
         aria-label="Principal"
       >
         {mobile.slice(0, half).map((item) => (
@@ -178,7 +185,28 @@ function Shell({ me, children }: { me: Me; children: ReactNode }) {
         {mobile.slice(half).map((item) => (
           <MobileLink key={item.to} item={item} active={item === current} />
         ))}
+        <button
+          type="button"
+          onClick={() => setMoreOpen(true)}
+          aria-current={moreActive ? "page" : undefined}
+          className={cn(
+            "flex h-[52px] flex-col items-center justify-center gap-0.5 text-[11px] font-medium",
+            moreActive ? "text-accent" : "text-muted",
+          )}
+        >
+          <Ellipsis className="size-5" aria-hidden />
+          Mais
+        </button>
       </nav>
+      <Sheet open={moreOpen} onClose={() => setMoreOpen(false)} title="Mais">
+        <nav className="flex flex-col gap-0.5" aria-label="Mais opções">
+          {more.map((item) => (
+            <span key={item.to} onClickCapture={() => setMoreOpen(false)}>
+              <NavLink item={item} active={item === current} />
+            </span>
+          ))}
+        </nav>
+      </Sheet>
     </div>
   );
 }

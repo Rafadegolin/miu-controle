@@ -4,13 +4,16 @@ import type {
   Category,
   CreateAccount,
   CreateCategory,
+  CreateRecurring,
   CreateTransaction,
   MonthSummary,
+  RecurringRule,
   Statement,
   Transaction,
   TransactionPage,
   UpdateAccount,
   UpdateCategory,
+  UpdateRecurring,
   UpdateTransaction,
 } from "@miu/shared";
 import { infiniteQueryOptions, type QueryClient, queryOptions } from "@tanstack/react-query";
@@ -87,6 +90,7 @@ export function invalidateMoney(queryClient: QueryClient) {
     queryClient.invalidateQueries({ queryKey: ["transactions"] }),
     queryClient.invalidateQueries({ queryKey: ["summary"] }),
     queryClient.invalidateQueries({ queryKey: ["cards"] }),
+    queryClient.invalidateQueries({ queryKey: ["recurring"] }),
   ]);
 }
 
@@ -126,3 +130,26 @@ export const archiveCategory = async (id: string, archived: boolean) =>
       ? api.categories[":id"].archive.$post({ param: { id } })
       : api.categories[":id"].unarchive.$post({ param: { id } })),
   );
+
+/* ---------- recorrências ---------- */
+
+export const recurringQuery = queryOptions({
+  queryKey: ["recurring"],
+  queryFn: async () => readJson<RecurringRule[]>(await api.recurring.$get()),
+  staleTime: 60_000,
+});
+
+export const createRecurring = async (body: CreateRecurring & { firstPosted?: boolean }) =>
+  readJson<RecurringRule>(await api.recurring.$post({ json: body as never }));
+export const updateRecurring = async (id: string, body: UpdateRecurring) =>
+  readJson<RecurringRule>(await api.recurring[":id"].$patch({ param: { id }, json: body }));
+export const pauseRecurring = async (id: string, paused: boolean) =>
+  readJson<RecurringRule>(
+    await (paused
+      ? api.recurring[":id"].pause.$post({ param: { id } })
+      : api.recurring[":id"].resume.$post({ param: { id } })),
+  );
+export async function deleteRecurring(id: string) {
+  const res = await api.recurring[":id"].$delete({ param: { id } });
+  if (!res.ok) await readJson(res);
+}

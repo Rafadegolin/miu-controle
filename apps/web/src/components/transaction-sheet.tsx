@@ -6,6 +6,7 @@ import { useId, useState } from "react";
 import {
   accountsQuery,
   categoriesQuery,
+  createRecurring,
   createTransaction,
   deleteTransaction,
   invalidateMoney,
@@ -29,6 +30,8 @@ export type Draft = {
   description: string;
   planned: boolean;
   installments: number;
+  /** Criar como recorrência mensal a partir desta data. */
+  repeat?: boolean;
   /** Pagamento de fatura: qual fatura (YYYY-MM). */
   statementMonth?: string | undefined;
 };
@@ -132,6 +135,22 @@ function TransactionForm({
             : "Transferência"
           : (cats.find((c) => c.id === d.categoryId)?.name ?? "");
       const description = d.description.trim() || fallback;
+      if (d.repeat && !editing) {
+        const common = {
+          amountCents: d.cents,
+          accountId: d.accountId,
+          description: description || "Recorrência",
+          frequency: "monthly" as const,
+          startDate: d.date,
+          firstPosted: status === "posted",
+        };
+        await createRecurring(
+          d.kind === "transfer"
+            ? { kind: "transfer", toAccountId: d.toAccountId, ...common }
+            : { kind: d.kind, categoryId: d.categoryId, ...common },
+        );
+        return { status } as { status: "posted" | "planned" };
+      }
       if (editing) {
         return updateTransaction(editing.id, {
           amountCents: d.cents,
@@ -167,11 +186,13 @@ function TransactionForm({
       done(
         editing
           ? "Lançamento atualizado"
-          : parcelado
-            ? `Compra em ${d.installments}x salva`
-            : tx.status === "planned"
-              ? "Previsão salva"
-              : "Lançamento salvo",
+          : d.repeat
+            ? "Salvo e repetindo todo mês"
+            : parcelado
+              ? `Compra em ${d.installments}x salva`
+              : tx.status === "planned"
+                ? "Previsão salva"
+                : "Lançamento salvo",
       ),
   });
 
@@ -414,6 +435,18 @@ function TransactionForm({
           />
         )}
       </Field>
+
+      {!editing && !parcelado ? (
+        <div className="flex items-center justify-between gap-4">
+          <span>
+            <span className="block font-medium">Repetir todo mês</span>
+            <span className="block text-[13px] text-muted">
+              Cria uma recorrência: os próximos meses entram como previstos.
+            </span>
+          </span>
+          <Switch checked={!!d.repeat} onChange={(repeat) => set({ repeat })} label="Repetir todo mês" />
+        </div>
+      ) : null}
 
       {!isInstallment && !onCard ? (
         <div className="flex items-center justify-between gap-4">

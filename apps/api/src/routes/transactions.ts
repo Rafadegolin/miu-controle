@@ -364,9 +364,13 @@ export const transactionsRoutes = new Hono<App>()
     const today = await userToday(db, userId);
     const [row] = await db
       .update(transactions)
-      // datas ISO (strings): pagou antes do dia previsto → fica com a data de hoje
-      // biome-ignore lint/complexity/useMathMinMax: comparação de strings, não de números
-      .set({ status: "posted", date: current.date > today ? today : current.date })
+      // Pagou antes do dia previsto → fica com a data de hoje. Recorrência mantém a data da ocorrência
+      // (é "o aluguel de dezembro"); mudar a data faria a regra gerar a mesma conta de novo.
+      .set({
+        status: "posted",
+        // biome-ignore lint/complexity/useMathMinMax: comparação de strings ISO, não de números
+        date: current.recurringRuleId ? current.date : current.date > today ? today : current.date,
+      })
       .where(and(eq(transactions.id, current.id), eq(transactions.userId, userId)))
       .returning();
     if (!row) throw new HttpError(404, "lancamento_nao_encontrado", "Lançamento não encontrado.");
