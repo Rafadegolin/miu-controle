@@ -17,7 +17,7 @@ Controle financeiro pessoal. Monorepo pnpm + Turborepo + Biome, rodando num úni
 - `pnpm db:local`: Postgres local em PGlite (porta 5433) para desenvolver sem o Neon.
 - `pnpm check`: lint, typecheck, testes e build (o mesmo que o CI roda).
 - `pnpm db:generate` / `pnpm db:migrate`: precisam de `DATABASE_URL` (conexão direta do Neon, nunca a do Hyperdrive).
-- `pnpm run deploy` (o `run` é obrigatório, `pnpm deploy` é um comando do pnpm): build da web e `wrangler deploy` da api.
+- `pnpm run deploy` (o `run` é obrigatório, `pnpm deploy` é um comando do pnpm): build da web e `wrangler deploy` da api. Normalmente não precisa: push na `main` publica sozinho pelo CI.
 
 ## Testes
 

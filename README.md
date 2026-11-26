@@ -25,3 +25,11 @@ Abra http://localhost:5173. Sem provedor de e-mail configurado, o link de confir
 Para rodar a mesma verificação do CI: `pnpm check`.
 
 Detalhes de arquitetura e convenções em [CLAUDE.md](CLAUDE.md).
+
+## Deploy
+
+Cada push na `main` roda o CI (lint, typecheck, testes e build) e, se tudo passar, aplica as migrations no Neon e publica o Worker (`.github/workflows/ci.yml`). Fica ligado pela variável `DEPLOY_ENABLED=true` do repositório e usa os segredos `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID` e `DATABASE_URL` (conexão direta do Neon, sem `-pooler`).
+
+Deploy manual, se precisar: `pnpm run deploy`.
+
+O Turnstile usa a chave pública em `apps/web/.env.production` e o segredo `TURNSTILE_SECRET` no Worker.
