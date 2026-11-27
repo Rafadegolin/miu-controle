@@ -116,4 +116,41 @@ export type Projection = {
   firstNegative: { month: string; accountId: string | null } | null;
   /** Cartões sem conta de pagamento ligada (a fatura entra só no total). */
   cardsWithoutPayer: string[];
+  /** Faturas que vencem em cada mês (todas as contas), em centavos. */
+  billsByMonth: Record<string, number>;
+};
+
+/**
+ * Entrada do Futuro: o que é certo (projeção) + médias. A conta (projectFuture do @miu/core) roda no
+ * aparelho, para a simulação responder na hora.
+ */
+export type Future = {
+  today: string;
+  months: { month: string; knownTotalCents: number; billsCents: number }[];
+  firstNegative: { month: string; accountId: string | null } | null;
+  /** Gasto variável médio por mês (sem recorrências e parcelas), últimos 3 meses fechados. */
+  variableMonthlyCents: number;
+  /** Quanto ainda deve sair de gasto variável no mês atual, pelo ritmo. */
+  currentMonthVariableLeftCents: number;
+  categories: {
+    id: string;
+    name: string;
+    color: string;
+    icon: string;
+    averageCents: number;
+    lastMonthCents: number;
+  }[];
+  goals: {
+    id: string;
+    name: string;
+    color: string;
+    targetCents: number;
+    savedCents: number;
+    recentMonthlyCents: number;
+    /** Conta-caixinha da meta (para aplicar "guardar todo mês"). */
+    accountId: string | null;
+    cdiPercent: number | null;
+  }[];
+  boxes: { accountId: string; balanceCents: number; cdiPercent: number }[];
+  cdiAnnualPercent: number | null;
 };

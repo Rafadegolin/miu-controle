@@ -1,24 +1,29 @@
-import { addYearMonth } from "@miu/core";
+import { addYearMonth, futureTip, projectFuture } from "@miu/core";
 import type { Category, RecurringRule } from "@miu/shared";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Link } from "@tanstack/react-router";
 import { ChevronLeft, ChevronRight, PartyPopper, X } from "lucide-react";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import { AnimatedNumber } from "@/components/animated-number";
 import { cn } from "@/lib/cn";
 import {
+  accountsQuery,
   budgetsQuery,
   cashflowQuery,
   categoriesQuery,
   dashboardQuery,
+  futureQuery,
   invalidateMoney,
   paceQuery,
   pauseRecurring,
   recurringQuery,
 } from "@/lib/finance";
 import { MONTHS, money } from "@/lib/format";
+import { tipText } from "@/lib/future-text";
 import { IconTile } from "./category-icon";
 import { PaceChart } from "./charts";
 import { Switch } from "./controls";
+import { FutureChart } from "./future-chart";
 import { LimitForm, whole } from "./spending-limit";
 import { toast } from "./toast";
 import { Button } from "./ui";
@@ -100,7 +105,7 @@ export function MonthSummary({ open, onClose }: { open: boolean; onClose: () => 
   );
 }
 
-const STEP_COUNT = 5;
+const STEP_COUNT = 6;
 
 function Steps({ step }: { step: number }) {
   const dash = useQuery(dashboardQuery);
@@ -115,6 +120,8 @@ function Steps({ step }: { step: number }) {
       return <SubscriptionsStep />;
     case 3:
       return <BudgetsStep month={month} />;
+    case 4:
+      return <FutureStep />;
     default:
       return <Closing />;
   }
@@ -427,6 +434,37 @@ function Closing() {
           <p className="max-w-[280px] text-sm text-muted">
             Já contando contas previstas, recorrências e as faturas que vencem no mês.
           </p>
+        </div>
+      }
+    />
+  );
+}
+
+/* ---------- 5. seu futuro ---------- */
+
+function FutureStep() {
+  const q = useQuery(futureQuery(12));
+  const { data: accounts = [] } = useQuery(accountsQuery);
+  const f = q.data;
+  if (!f) return <div className="h-72 skeleton rounded-[16px] bg-surface-2" />;
+  const result = projectFuture(f);
+  const tip = futureTip(f);
+  const accountName = (id: string) => accounts.find((a) => a.id === id)?.name;
+  return (
+    <Story
+      kicker="Seu futuro"
+      title={tipText(tip, f, accountName)}
+      visual={
+        <div className="flex flex-col gap-3 rounded-[18px] bg-surface-2 p-5">
+          <p className="text-sm text-muted">Patrimônio previsto nos próximos 12 meses</p>
+          <FutureChart
+            months={f.months.map((m) => m.month)}
+            base={result.months.map((m) => m.totalCents)}
+            height={150}
+          />
+          <Link to="/futuro" className="self-start text-sm font-medium text-primary">
+            Ver o futuro e simular →
+          </Link>
         </div>
       }
     />

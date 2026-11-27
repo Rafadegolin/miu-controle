@@ -1,4 +1,5 @@
 export * from "./dates";
+export * from "./future";
 export * from "./import";
 export * from "./insights";
 export * from "./installments";

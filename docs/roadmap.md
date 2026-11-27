@@ -62,14 +62,19 @@ Estado em 2026-11-27. Produção: https://miu-controle.miu-api.workers.dev (push
     rendimento do mês anterior em Rendimentos (idempotente via `yield_postings`); a tela estima o do mês atual;
   - "Ajustar saldo" lança a diferença com o saldo do banco.
 
+- **F4. Futuro:**
+  - `GET /api/insights/future` entrega só a entrada (projeção do que é certo, faturas por mês, gasto
+    variável médio dos 3 meses fechados sem recorrências e parcelas, metas e caixinhas, CDI);
+  - `projectFuture` e `futureTip` (`packages/core/src/future.ts`) rodam no aparelho: patrimônio mês a mês,
+    rendimento composto das caixinhas, data de cada meta, marcos (meta, fatura alta, saldo negativo) e cenários;
+  - tela Futuro (menu Visão estratégica, 12/24 meses): gráfico com "sem mudanças" tracejado, marcos e simulador
+    "E se…" (cortar categoria, guardar todo mês, compra parcelada, mudar a renda); "Aplicar" vira orçamento
+    ou recorrência de transferência para a caixinha;
+  - passo "Seu futuro" no Resumo do mês, com a recomendação do `futureTip`.
+
 ## Próximos passos
 
-### F4 (plano aprovado em 2026-11-27)
-
-- **F4. Futuro:**
-  - tela de patrimônio projetado em 12 a 24 meses, com marcos;
-  - simulador "e se" (cortar categoria, guardar mais, compra parcelada, renda);
-  - passo "Seu futuro" no Resumo do mês.
+O plano F1–F4 está completo. Fora dele, ainda pendentes: e-mail pelo Resend e domínio próprio.
 
 ### R3. A definir
 

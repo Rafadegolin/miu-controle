@@ -58,6 +58,7 @@ export async function buildProjection(db: Db, userId: string, months: number): P
   for (const b of banks) startBalances[b.id] = b.initialBalanceCents + (balances.get(b.id) ?? 0);
 
   const events: ProjectionEvent[] = [];
+  const billsByMonth: Record<string, number> = {};
   const add = (date: string, accountId: string | null, deltaCents: number) => {
     if (deltaCents !== 0 && date <= horizonEnd) events.push({ date, accountId, deltaCents });
   };
@@ -85,7 +86,12 @@ export async function buildProjection(db: Db, userId: string, months: number): P
     };
     for (const m of (ledgers[i] ?? new Map()).keys()) {
       const s = summarize(card, m, ledgers[i] ?? new Map(), today);
-      if (s.remainingCents > 0) add(s.dueDate, payerOf(c.id), -s.remainingCents);
+      if (s.remainingCents > 0 && s.dueDate <= horizonEnd) {
+        add(s.dueDate, payerOf(c.id), -s.remainingCents);
+        // atrasada conta no mês atual, como na projeção
+        const due = s.dueDate < today ? today.slice(0, 7) : s.dueDate.slice(0, 7);
+        billsByMonth[due] = (billsByMonth[due] ?? 0) + s.remainingCents;
+      }
     }
   });
 
@@ -117,6 +123,9 @@ export async function buildProjection(db: Db, userId: string, months: number): P
           card.dueDay as number,
         ).dueDate;
         add(due, payerOf(card.id), -r.amountCents);
+        if (due <= horizonEnd) {
+          billsByMonth[due.slice(0, 7)] = (billsByMonth[due.slice(0, 7)] ?? 0) + r.amountCents;
+        }
       } else if (isBank(r.accountId)) {
         if (r.kind === "income") add(d, r.accountId, r.amountCents);
         else if (r.kind === "expense") add(d, r.accountId, -r.amountCents);
@@ -134,5 +143,6 @@ export async function buildProjection(db: Db, userId: string, months: number): P
     months: result,
     firstNegative: firstNegative(result),
     cardsWithoutPayer: cards.filter((c) => !payerOf(c.id)).map((c) => c.id),
+    billsByMonth,
   };
 }

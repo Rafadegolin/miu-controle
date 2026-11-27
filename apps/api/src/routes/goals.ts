@@ -36,7 +36,7 @@ async function ownedGoal(db: Db, userId: string, id: string) {
  * Metas do usuário. Meta com caixinha: o guardado é o saldo da conta-caixinha (aportes são
  * transferências, rendimento entra como receita). Meta sem caixinha: soma dos aportes, como antes.
  */
-async function loadGoals(db: Db, userId: string, today: string, onlyId?: string): Promise<Goal[]> {
+export async function loadGoals(db: Db, userId: string, today: string, onlyId?: string): Promise<Goal[]> {
   const since = addMonths(today, -3);
   const [rows, sums] = await Promise.all([
     db

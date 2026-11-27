@@ -16,6 +16,7 @@ import {
   Settings,
   Sun,
   Target,
+  Telescope,
   TrendingUp,
   Upload,
   Wallet,
@@ -41,6 +42,7 @@ export const NAV: NavItem[] = [
   { to: "/orcamentos", label: "Orçamentos", icon: PieChart, section: "Controle financeiro" },
   { to: "/metas", label: "Metas", icon: Target, section: "Controle financeiro" },
   { to: "/relatorios", label: "Relatórios", icon: TrendingUp, section: "Visão estratégica" },
+  { to: "/futuro", label: "Futuro", icon: Telescope, section: "Visão estratégica" },
   { to: "/importar", label: "Importar extrato", icon: Upload, section: "Ferramentas" },
   { to: "/configuracoes", label: "Configurações", icon: Settings, section: "Ferramentas" },
 ];

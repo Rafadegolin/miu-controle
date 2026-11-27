@@ -15,6 +15,7 @@ import type {
   CreateRecurring,
   CreateTransaction,
   Dashboard,
+  Future,
   Goal,
   GoalContribution,
   ImportBatch,
@@ -118,6 +119,7 @@ export function invalidateMoney(queryClient: QueryClient) {
     queryClient.invalidateQueries({ queryKey: ["pace"] }),
     queryClient.invalidateQueries({ queryKey: ["suggestions"] }),
     queryClient.invalidateQueries({ queryKey: ["projection"] }),
+    queryClient.invalidateQueries({ queryKey: ["future"] }),
     queryClient.invalidateQueries({ queryKey: ["recurring-year"] }),
   ]);
 }
@@ -309,5 +311,14 @@ export const projectionQuery = (months = 4) =>
     queryKey: ["projection", months],
     queryFn: async () =>
       readJson<Projection>(await api.insights.projection.$get({ query: { months: String(months) } })),
+    staleTime: 60_000,
+  });
+
+/** Entrada do Futuro (o cálculo e a simulação rodam no aparelho, com projectFuture). */
+export const futureQuery = (months = 12) =>
+  queryOptions({
+    queryKey: ["future", months],
+    queryFn: async () =>
+      readJson<Future>(await api.insights.future.$get({ query: { months: String(months) } })),
     staleTime: 60_000,
   });
