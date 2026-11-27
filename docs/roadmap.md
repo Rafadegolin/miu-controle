@@ -39,7 +39,9 @@ Estado em 2026-11-27. Produção: https://miu-controle.miu-api.workers.dev (push
 
 ### R3. A definir
 
-Os atalhos do ícone, que eram o item 3 aprovado, já entraram na R1. Candidatos para a R3:
+Os atalhos do ícone, que eram o item 3 aprovado, já entraram na R1. Eles só aparecem no Android: o iOS
+não oferece atalhos de manifest para apps instalados pelo Safari. A opção "abrir o app já no novo
+lançamento" foi oferecida como alternativa no iPhone e recusada. Candidatos para a R3:
 
 - lembrete à noite, opcional ("Lançou tudo hoje?"), por e-mail ou notificação;
 - sugerir o banco da conta pelo código do banco no OFX importado.
