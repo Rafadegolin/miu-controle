@@ -51,9 +51,18 @@ export type PreviewRow = {
   /** De onde veio a sugestão de categoria. */
   categorySource: "history" | "keyword" | null;
   match: ImportMatch | null;
+  /** Compra parcelada no cartão ("PARC 03/10"). explicit=false: só "03/10", pode ser data. */
+  installment: { no: number; total: number; explicit: boolean } | null;
+  /** Extrato da conta: parece pagamento de fatura deste cartão (vira transferência). */
+  transferToCardId: string | null;
 };
 
-export type ImportPreview = { accountId: string; rows: PreviewRow[] };
+export type ImportPreview = {
+  accountId: string;
+  rows: PreviewRow[];
+  /** Cartão: fatura que o arquivo parece ser (as parcelas entram nela e nas seguintes). */
+  statementMonth: string | null;
+};
 
 export const confirmImportSchema = z
   .object({
@@ -68,10 +77,23 @@ export const confirmImportSchema = z
           description: z.string().trim().min(1).max(120),
           categoryId: id.nullable(),
           fitid: z.string().trim().max(120).nullable().optional(),
+          /** Cartão: cria esta parcela e as próximas nas faturas seguintes. */
+          installment: z
+            .object({ no: z.number().int().min(1).max(48), total: z.number().int().min(2).max(48) })
+            .refine((i) => i.no <= i.total, "Parcela maior que o total.")
+            .nullable()
+            .optional(),
+          /** Conta: grava como pagamento da fatura deste cartão (transferência). */
+          toAccountId: id.nullable().optional(),
         }),
       )
       .min(1, "Selecione ao menos um lançamento.")
       .max(MAX_IMPORT_ROWS),
+    /** Cartão: fatura em que entram as parcelas deste arquivo (YYYY-MM). */
+    statementMonth: z
+      .string()
+      .regex(/^\d{4}-\d{2}$/, "Mês inválido.")
+      .optional(),
   })
   .strict();
 export type ConfirmImport = z.input<typeof confirmImportSchema>;

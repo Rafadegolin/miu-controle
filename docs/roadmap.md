@@ -49,15 +49,17 @@ Estado em 2026-11-27. Produção: https://miu-controle.miu-api.workers.dev (push
   - projeção mês a mês por conta (`@miu/core/projection`, `GET /api/insights/projection`), com a Visão geral usando a mesma conta;
   - "nesse ritmo, o mês fecha em R$ X" (`projectMonthSpend`);
   - excluir meta no rodapé.
+- **F2. Importação inteligente:**
+  - parcelas do extrato do cartão ("PARC 03/10", "Parcela 3 de 10", "(3/10)"; "03/10" solto como sugestão) criam a parcela na fatura escolhida e as próximas nas seguintes (`detectInstallment`/`importedInstallments` no core);
+  - a próxima importação reconhece a parcela já criada;
+  - "Pagamento de fatura" no extrato da conta vira transferência para o cartão ligado;
+  - repetidos em ±2 dias;
+  - desfazer apaga também as parcelas futuras.
 
 ## Próximos passos
 
 ### F2–F4 (plano aprovado em 2026-11-27)
 
-- **F2. Importação inteligente:**
-  - parcelas "PARC 03/10" do extrato do cartão viram parcelamento com as faturas futuras;
-  - "Pagamento de fatura" no extrato da conta vira transferência para o cartão ligado;
-  - marca possíveis duplicatas com lançamentos manuais.
 - **F3. Caixinhas:**
   - a meta fica ligada a uma conta `savings`;
   - aportar e resgatar são transferências;

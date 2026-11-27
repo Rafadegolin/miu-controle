@@ -1,6 +1,9 @@
 import {
   addDays,
+  detectInstallment,
   guessCategoryName,
+  importedInstallments,
+  looksLikeCardPayment,
   monthToDate,
   normalizeDescription,
   prettifyDescription,
@@ -18,12 +21,17 @@ import {
 import { Hono } from "hono";
 import { z } from "zod";
 import type { App } from "../env";
+import { cardLedger, focusMonth } from "../lib/cards";
 import { HttpError } from "../lib/errors";
 import { ownedAccount, userToday } from "../lib/user-data";
 import { valid } from "../lib/validate";
 import { requireUser } from "../middleware/auth";
 
 const { transactions, categories, importBatches, accounts } = schema;
+
+/** Identidade de uma parcela: mesma compra (descrição base), mesmo número, total e valor. */
+const installmentKey = (base: string, no: number, total: number, amount: number) =>
+  `${normalizeDescription(base)}|${no}|${total}|${amount}`;
 
 /** Chaves para "já lancei algo parecido": as 3 e as 2 primeiras palavras da descrição normalizada. */
 const historyKeys = (description: string) => {
@@ -46,7 +54,7 @@ export const importRoutes = new Hono<App>()
     const positiveIsExpense = body.positiveIsExpense ?? isCard;
 
     const dates = body.rows.map((r) => r.date).sort();
-    const [existing, history, cats] = await Promise.all([
+    const [existing, history, cats, cards, existingInstallments] = await Promise.all([
       db
         .select({
           id: transactions.id,
@@ -61,8 +69,8 @@ export const importRoutes = new Hono<App>()
           and(
             eq(transactions.userId, userId),
             eq(transactions.accountId, account.id),
-            gte(transactions.date, addDays(dates[0] ?? "1970-01-01", -1)),
-            lte(transactions.date, addDays(dates.at(-1) ?? "1970-01-01", 1)),
+            gte(transactions.date, addDays(dates[0] ?? "1970-01-01", -2)),
+            lte(transactions.date, addDays(dates.at(-1) ?? "1970-01-01", 2)),
           ),
         ),
       db
@@ -79,6 +87,31 @@ export const importRoutes = new Hono<App>()
         .select({ id: categories.id, name: categories.name, kind: categories.kind })
         .from(categories)
         .where(and(eq(categories.userId, userId), isNull(categories.archivedAt))),
+      db
+        .select({ id: accounts.id, payFromAccountId: accounts.payFromAccountId })
+        .from(accounts)
+        .where(
+          and(eq(accounts.userId, userId), eq(accounts.kind, "credit_card"), isNull(accounts.archivedAt)),
+        ),
+      isCard
+        ? db
+            .select({
+              id: transactions.id,
+              date: transactions.date,
+              description: transactions.description,
+              no: transactions.installmentNo,
+              total: transactions.installmentTotal,
+              amount: transactions.amountCents,
+            })
+            .from(transactions)
+            .where(
+              and(
+                eq(transactions.userId, userId),
+                eq(transactions.accountId, account.id),
+                isNotNull(transactions.installmentGroupId),
+              ),
+            )
+        : Promise.resolve([]),
     ]);
 
     const learned = new Map<string, string>();
@@ -91,31 +124,55 @@ export const importRoutes = new Hono<App>()
     const activeCats = new Set(cats.map((x) => x.id));
     const byName = new Map(cats.map((x) => [`${x.kind}:${x.name.toLowerCase()}`, x.id]));
     const byFitid = new Map(existing.filter((e) => e.fitid).map((e) => [e.fitid as string, e]));
+    const byInstallment = new Map(
+      existingInstallments
+        .filter((e) => e.no && e.total)
+        .map((e) => [installmentKey(e.description, e.no as number, e.total as number, e.amount), e]),
+    );
+    // Pagamento de fatura no extrato da conta: o cartão ligado a esta conta (ou o único cartão).
+    const payCard = isCard
+      ? undefined
+      : (cards.find((c) => c.payFromAccountId === account.id) ?? (cards.length === 1 ? cards[0] : undefined));
+    const dayDiff = (a: string, b: string) => Math.abs(Date.parse(a) - Date.parse(b)) / 86_400_000;
 
     const rows: PreviewRow[] = body.rows.map((r, index) => {
       const outflow = positiveIsExpense ? r.amountCents > 0 : r.amountCents < 0;
       const kind = outflow ? "expense" : "income";
       const amountCents = Math.abs(r.amountCents);
-      const norm = normalizeDescription(r.description);
+      const det = isCard && kind === "expense" ? detectInstallment(r.description) : null;
+      const rawDescription = det ? det.base : r.description;
+      const norm = normalizeDescription(rawDescription);
 
       const fitMatch = r.fitid ? byFitid.get(r.fitid) : undefined;
-      const sameDay = existing.filter(
-        (e) => e.date === r.date && e.amount === amountCents && e.kind === kind,
+      // Parcela que uma importação anterior (ou o lançamento à mão) já criou: não duplica.
+      const instMatch = det
+        ? byInstallment.get(installmentKey(rawDescription, det.no, det.total, amountCents))
+        : undefined;
+      const near = existing.filter(
+        (e) =>
+          dayDiff(e.date, r.date) <= 2 &&
+          e.amount === amountCents &&
+          (e.kind === kind || (kind === "expense" && e.kind === "transfer")),
       );
-      const exact = fitMatch ?? sameDay.find((e) => normalizeDescription(e.description) === norm);
-      const probable = exact ? undefined : sameDay[0];
+      const exact =
+        fitMatch ??
+        (instMatch ? { ...instMatch, kind } : undefined) ??
+        near.find((e) => e.date === r.date && normalizeDescription(e.description) === norm);
+      const probable = exact ? undefined : near[0];
       const m = exact ?? probable;
+      const transferToCardId =
+        payCard && kind === "expense" && looksLikeCardPayment(r.description) ? payCard.id : null;
 
       let categoryId: string | null = null;
       let categorySource: PreviewRow["categorySource"] = null;
-      const fromHistory = historyKeys(r.description)
+      const fromHistory = (transferToCardId ? [] : historyKeys(rawDescription))
         .map((k) => learned.get(`${kind}:${k}`))
         .find(Boolean);
       if (fromHistory && activeCats.has(fromHistory)) {
         categoryId = fromHistory;
         categorySource = "history";
       } else {
-        const name = guessCategoryName(r.description, kind);
+        const name = transferToCardId ? null : guessCategoryName(rawDescription, kind);
         const idByName = name ? byName.get(`${kind}:${name.toLowerCase()}`) : undefined;
         if (idByName) {
           categoryId = idByName;
@@ -128,7 +185,7 @@ export const importRoutes = new Hono<App>()
         date: r.date,
         kind,
         amountCents,
-        description: prettifyDescription(r.description) || "Lançamento importado",
+        description: prettifyDescription(rawDescription) || "Lançamento importado",
         fitid: r.fitid ?? null,
         categoryId,
         categorySource,
@@ -140,10 +197,27 @@ export const importRoutes = new Hono<App>()
               date: m.date,
             }
           : null,
+        installment: det ? { no: det.no, total: det.total, explicit: det.explicit } : null,
+        transferToCardId,
       };
     });
 
-    const preview: ImportPreview = { accountId: account.id, rows };
+    // Cartão: a fatura que o arquivo parece ser = a mais comum entre as compras à vista
+    // (parcelas costumam vir com a data da compra original). Sem compras à vista: a fatura aberta.
+    let statementMonth: string | null = null;
+    if (isCard && account.closingDay) {
+      const counts = new Map<string, number>();
+      for (const r of rows) {
+        if (r.installment) continue;
+        const sm = statementMonthFor(r.date, account.closingDay);
+        counts.set(sm, (counts.get(sm) ?? 0) + 1);
+      }
+      statementMonth =
+        [...counts].sort((a, b) => b[1] - a[1])[0]?.[0] ??
+        statementMonthFor(await userToday(db, userId), account.closingDay);
+    }
+
+    const preview: ImportPreview = { accountId: account.id, rows, statementMonth };
     return c.json(preview);
   })
   /** Grava as linhas escolhidas como um lote (que pode ser desfeito inteiro). */
@@ -164,7 +238,7 @@ export const importRoutes = new Hono<App>()
         .where(and(eq(categories.userId, userId), inArray(categories.id, catIds)));
       const kinds = new Map(owned.map((o) => [o.id, o.kind]));
       for (const r of body.rows) {
-        if (!r.categoryId) continue;
+        if (!r.categoryId || r.toAccountId) continue;
         const k = kinds.get(r.categoryId);
         if (!k) throw new HttpError(404, "categoria_nao_encontrada", "Categoria não encontrada.");
         if (k !== r.kind) {
@@ -177,6 +251,34 @@ export const importRoutes = new Hono<App>()
       }
     }
 
+    const isCardAccount = account.kind === "credit_card";
+    const targetIds = [
+      ...new Set(body.rows.map((r) => r.toAccountId).filter((x): x is string => Boolean(x))),
+    ];
+    const targets = new Map<string, typeof account>();
+    if (targetIds.length) {
+      if (isCardAccount) {
+        throw new HttpError(
+          400,
+          "dados_invalidos",
+          "Pagamento de fatura vem do extrato da conta, não do cartão.",
+        );
+      }
+      for (const id of targetIds) {
+        const t = await ownedAccount(db, userId, id, { activeOnly: true });
+        if (t.kind !== "credit_card" || !t.closingDay || !t.dueDay) {
+          throw new HttpError(400, "dados_invalidos", "O pagamento de fatura precisa ir para um cartão.");
+        }
+        targets.set(id, t);
+      }
+    }
+    if (!isCardAccount && body.rows.some((r) => r.installment)) {
+      throw new HttpError(400, "dados_invalidos", "Parcelas são só de cartão de crédito.");
+    }
+    const ledgers = new Map(
+      await Promise.all(targetIds.map(async (id) => [id, await cardLedger(db, userId, id)] as const)),
+    );
+
     const batchId = crypto.randomUUID();
     await db.insert(importBatches).values({
       id: batchId,
@@ -186,22 +288,77 @@ export const importRoutes = new Hono<App>()
       rowCount: body.rows.length,
     });
 
-    const closing = account.kind === "credit_card" ? account.closingDay : null;
-    const values = body.rows.map((r) => ({
-      id: crypto.randomUUID(),
-      userId,
-      accountId: account.id,
-      kind: r.kind,
-      amountCents: r.amountCents,
-      categoryId: r.categoryId,
-      date: r.date,
-      description: r.description,
-      status: r.date > today ? ("planned" as const) : ("posted" as const),
-      source: "import" as const,
-      importBatchId: batchId,
-      importFitid: r.fitid ?? null,
-      statementMonth: closing ? monthToDate(statementMonthFor(r.date, closing)) : null,
-    }));
+    const closing = isCardAccount ? account.closingDay : null;
+    type Row = typeof transactions.$inferInsert;
+    const values: Row[] = body.rows.flatMap((r): Row[] => {
+      const base = {
+        userId,
+        accountId: account.id,
+        amountCents: r.amountCents,
+        description: r.description,
+        source: "import" as const,
+        importBatchId: batchId,
+      };
+      // Pagamento de fatura: transferência da conta para o cartão (quita a fatura em aberto da data).
+      const target = r.toAccountId ? targets.get(r.toAccountId) : undefined;
+      if (target) {
+        const card = {
+          id: target.id,
+          closingDay: target.closingDay as number,
+          dueDay: target.dueDay as number,
+          creditLimitCents: target.creditLimitCents ?? 0,
+        };
+        return [
+          {
+            ...base,
+            id: crypto.randomUUID(),
+            kind: "transfer",
+            toAccountId: target.id,
+            categoryId: null,
+            date: r.date,
+            status: r.date > today ? "planned" : "posted",
+            importFitid: r.fitid ?? null,
+            statementMonth: monthToDate(focusMonth(card, ledgers.get(target.id) ?? new Map(), r.date)),
+          },
+        ];
+      }
+      // Parcela no cartão: esta e as próximas, nas faturas seguintes (como uma compra parcelada).
+      if (r.installment && closing) {
+        const groupId = crypto.randomUUID();
+        const sm = body.statementMonth ?? statementMonthFor(r.date, closing);
+        return importedInstallments({
+          rowDate: r.date,
+          no: r.installment.no,
+          total: r.installment.total,
+          statementMonth: sm,
+          closingDay: closing,
+        }).map((p) => ({
+          ...base,
+          id: crypto.randomUUID(),
+          kind: r.kind,
+          categoryId: r.categoryId,
+          date: p.date,
+          status: "posted",
+          importFitid: p.no === r.installment?.no ? (r.fitid ?? null) : null,
+          statementMonth: monthToDate(p.statementMonth),
+          installmentGroupId: groupId,
+          installmentNo: p.no,
+          installmentTotal: r.installment?.total ?? null,
+        }));
+      }
+      return [
+        {
+          ...base,
+          id: crypto.randomUUID(),
+          kind: r.kind,
+          categoryId: r.categoryId,
+          date: r.date,
+          status: r.date > today ? "planned" : "posted",
+          importFitid: r.fitid ?? null,
+          statementMonth: closing ? monthToDate(statementMonthFor(r.date, closing)) : null,
+        },
+      ];
+    });
     let inserted = 0;
     for (let i = 0; i < values.length; i += 500) {
       const res = await db

@@ -1,4 +1,4 @@
-import { decodeFile, ImportError, parseStatementFile, todayIn } from "@miu/core";
+import { addYearMonth, decodeFile, ImportError, parseStatementFile, todayIn } from "@miu/core";
 import { type ImportPreview, MAX_IMPORT_ROWS, type PreviewRow } from "@miu/shared";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
@@ -20,7 +20,7 @@ import {
   previewImport,
   undoImport,
 } from "@/lib/finance";
-import { dayShort, money } from "@/lib/format";
+import { dayShort, money, monthLabel } from "@/lib/format";
 import { ApiRequestError } from "@/lib/http";
 import { awaitData } from "@/lib/loaders";
 import { meQuery } from "@/lib/me";
@@ -39,12 +39,20 @@ export const Route = createFileRoute("/_app/importar")({
   pendingComponent: CardsSkeleton,
 });
 
-type Row = PreviewRow & { selected: boolean };
+type Row = PreviewRow & {
+  selected: boolean;
+  /** Criar esta parcela e as próximas (só cartão). */
+  installmentOn: boolean;
+  /** Gravar como pagamento da fatura (transferência para o cartão). */
+  asPayment: boolean;
+};
 type State = {
   fileName: string;
   parsed: Parameters<typeof previewImport>[0]["rows"];
   preview: ImportPreview;
   rows: Row[];
+  /** Cartão: fatura em que entram as parcelas. */
+  statementMonth: string | null;
 };
 
 function Importar() {
@@ -92,7 +100,14 @@ function Importar() {
         fileName,
         parsed,
         preview,
-        rows: preview.rows.map((r) => ({ ...r, selected: !r.match })),
+        statementMonth: preview.statementMonth,
+        rows: preview.rows.map((r) => ({
+          ...r,
+          selected: !r.match,
+          // "PARC 3/10" vale direto; "03/10" solto pode ser data: fica para você confirmar.
+          installmentOn: Boolean(r.installment?.explicit),
+          asPayment: Boolean(r.transferToCardId),
+        })),
       });
     },
     onError: (e) =>
@@ -110,13 +125,17 @@ function Importar() {
       return confirmImport({
         accountId: state.preview.accountId,
         fileName: state.fileName,
+        ...(state.statementMonth ? { statementMonth: state.statementMonth } : {}),
         rows: chosen.map((r) => ({
           date: r.date,
           kind: r.kind,
           amountCents: r.amountCents,
           description: r.description,
-          categoryId: r.categoryId,
+          categoryId: r.asPayment ? null : r.categoryId,
           fitid: r.fitid,
+          installment:
+            r.installmentOn && r.installment ? { no: r.installment.no, total: r.installment.total } : null,
+          toAccountId: r.asPayment ? r.transferToCardId : null,
         })),
       });
     },
@@ -152,7 +171,11 @@ function Importar() {
       s ? { ...s, rows: s.rows.map((r) => (r.index === index ? { ...r, ...patch } : r)) } : s,
     );
   const selected = state?.rows.filter((r) => r.selected) ?? [];
-  const missingCat = selected.filter((r) => !r.categoryId).length;
+  const missingCat = selected.filter((r) => !r.categoryId && !r.asPayment).length;
+  const futureParcels = selected.reduce(
+    (s2, r) => s2 + (r.installmentOn && r.installment ? r.installment.total - r.installment.no : 0),
+    0,
+  );
   const net = selected.reduce((s, r) => s + (r.kind === "income" ? r.amountCents : -r.amountCents), 0);
 
   if (state) {
@@ -199,6 +222,38 @@ function Importar() {
               Valores positivos são despesas {isCard ? "(comum em fatura de cartão)" : ""}
             </span>
           </div>
+          {state.statementMonth ? (
+            <div className="flex flex-wrap items-center gap-2 border-t border-line px-5 py-3 text-[13.5px]">
+              <label htmlFor={`${uid}-fatura`} className="text-muted">
+                Este arquivo é a fatura de
+              </label>
+              <select
+                id={`${uid}-fatura`}
+                value={state.statementMonth}
+                onChange={(e) => setState((s2) => (s2 ? { ...s2, statementMonth: e.target.value } : s2))}
+                className="h-8 rounded-md border border-line-strong bg-surface px-1.5 capitalize"
+              >
+                {[-2, -1, 0, 1, 2].map((k) => {
+                  const m = addYearMonth(state.preview.statementMonth ?? state.statementMonth ?? "", k);
+                  return (
+                    <option key={m} value={m}>
+                      {monthLabel(m)}
+                    </option>
+                  );
+                })}
+              </select>
+              {futureParcels ? (
+                <span className="text-muted">
+                  · as parcelas entram nela e{" "}
+                  <b className="text-fg">
+                    {futureParcels}{" "}
+                    {futureParcels === 1 ? "parcela futura é criada" : "parcelas futuras são criadas"}
+                  </b>{" "}
+                  nas próximas faturas
+                </span>
+              ) : null}
+            </div>
+          ) : null}
           {error ? (
             <div className="px-5 pb-3">
               <Alert>{error}</Alert>
@@ -247,28 +302,73 @@ function Importar() {
                         onChange={(e) => update(r.index, { description: e.target.value })}
                         className="h-8 w-full min-w-[180px] rounded-md border border-transparent bg-transparent px-1.5 hover:border-line focus:border-primary"
                       />
+                      {r.installment ? (
+                        <button
+                          type="button"
+                          onClick={() => update(r.index, { installmentOn: !r.installmentOn })}
+                          aria-pressed={r.installmentOn}
+                          className={cn(
+                            "mt-1 ml-1.5 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium transition",
+                            r.installmentOn
+                              ? "bg-accent-soft text-primary"
+                              : "bg-surface-2 text-muted hover:text-fg",
+                          )}
+                        >
+                          {r.installmentOn
+                            ? `Parcela ${r.installment.no}/${r.installment.total}${
+                                r.installment.total > r.installment.no
+                                  ? ` · cria as próximas ${r.installment.total - r.installment.no}`
+                                  : ""
+                              }`
+                            : `É a parcela ${r.installment.no}/${r.installment.total}? Toque para confirmar`}
+                        </button>
+                      ) : null}
                     </td>
                     <td className="px-2 py-2">
-                      <select
-                        aria-label="Categoria"
-                        value={r.categoryId ?? ""}
-                        onChange={(e) =>
-                          update(r.index, { categoryId: e.target.value || null, categorySource: null })
-                        }
-                        className={cn(
-                          "h-8 min-w-[150px] rounded-md border bg-surface px-1.5",
-                          r.categoryId ? "border-line-strong" : "border-warn",
-                        )}
-                      >
-                        <option value="">Sem categoria</option>
-                        {categories
-                          .filter((c) => c.kind === r.kind && !c.archived)
-                          .map((c) => (
-                            <option key={c.id} value={c.id}>
-                              {c.name}
-                            </option>
-                          ))}
-                      </select>
+                      {r.asPayment ? (
+                        <span className="inline-flex flex-wrap items-center gap-1.5">
+                          <span className="rounded-full bg-accent-soft px-2 py-1 text-xs font-medium text-primary">
+                            Pagamento da fatura · {accMap.get(r.transferToCardId ?? "")?.name ?? "cartão"}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => update(r.index, { asPayment: false })}
+                            className="text-xs text-muted hover:underline"
+                          >
+                            não é
+                          </button>
+                        </span>
+                      ) : (
+                        <select
+                          aria-label="Categoria"
+                          value={r.categoryId ?? ""}
+                          onChange={(e) =>
+                            update(r.index, { categoryId: e.target.value || null, categorySource: null })
+                          }
+                          className={cn(
+                            "h-8 min-w-[150px] rounded-md border bg-surface px-1.5",
+                            r.categoryId ? "border-line-strong" : "border-warn",
+                          )}
+                        >
+                          <option value="">Sem categoria</option>
+                          {categories
+                            .filter((c) => c.kind === r.kind && !c.archived)
+                            .map((c) => (
+                              <option key={c.id} value={c.id}>
+                                {c.name}
+                              </option>
+                            ))}
+                        </select>
+                      )}
+                      {!r.asPayment && r.transferToCardId ? (
+                        <button
+                          type="button"
+                          onClick={() => update(r.index, { asPayment: true })}
+                          className="ml-2 text-xs text-primary hover:underline"
+                        >
+                          é pagamento de fatura
+                        </button>
+                      ) : null}
                     </td>
                     <td
                       className={cn(

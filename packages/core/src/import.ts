@@ -1,4 +1,6 @@
+import { addMonths, addYearMonth, type ISODate, type YearMonth } from "./dates";
 import type { Cents } from "./money";
+import { statementMonthFor } from "./statement";
 
 /**
  * Importação de extratos. Roda no navegador (o arquivo nunca sobe inteiro) e é testável aqui.
@@ -266,4 +268,81 @@ export function guessCategoryName(description: string, kind: "income" | "expense
     if ((kind === "income") === isIncome) return name;
   }
   return null;
+}
+
+/* ---------- parcelas e pagamento de fatura ---------- */
+
+export type DetectedInstallment = {
+  /** Parcela desta linha e total de parcelas. */
+  no: number;
+  total: number;
+  /** Descrição sem o pedaço da parcela ("NOTEBOOK - PARC 03/10" → "NOTEBOOK"). */
+  base: string;
+  /**
+   * true: escrito como parcela ("PARC 3/10", "Parcela 3 de 10", "(3/10)").
+   * false: só "03/10" no fim — pode ser data, então é uma sugestão a confirmar.
+   */
+  explicit: boolean;
+};
+
+const PARC_EXPLICIT = /\b(?:parc(?:ela)?s?|prest(?:a[cç][aã]o)?)\.?\s*(\d{1,2})\s*(?:\/|de)\s*(\d{1,2})\b/i;
+const PARC_PAREN = /\(\s*(\d{1,2})\s*\/\s*(\d{1,2})\s*\)\s*$/;
+const PARC_PLAIN = /(?:^|[\s\-–])(\d{2})\/(\d{2})\s*$/;
+
+/** Acha "parcela N de T" na descrição de uma compra no cartão. */
+export function detectInstallment(description: string): DetectedInstallment | null {
+  const tries: [RegExp, boolean][] = [
+    [PARC_EXPLICIT, true],
+    [PARC_PAREN, true],
+    [PARC_PLAIN, false],
+  ];
+  for (const [re, explicit] of tries) {
+    const m = description.match(re);
+    if (!m) continue;
+    const no = Number(m[1]);
+    const total = Number(m[2]);
+    if (!(total >= 2 && total <= 48 && no >= 1 && no <= total)) continue;
+    const base = description
+      .replace(m[0], " ")
+      .replace(/[\s\-–:|]+$/, "")
+      .replace(/^[\s\-–:|]+/, "")
+      .replace(/\s{2,}/g, " ")
+      .trim();
+    return { no, total, base: base || description.trim(), explicit };
+  }
+  return null;
+}
+
+const CARD_PAYMENT =
+  /\b(pagamento|pgto|pag|pagto)\b.{0,12}\b(fatura|cart[aã]o|cartao|card)\b|\bfatura\b.{0,12}\b(paga|pagamento|pgto)\b|\bnu\s*pagamento\b/i;
+
+/** Linha do extrato da conta que parece ser o pagamento da fatura do cartão. */
+export function looksLikeCardPayment(description: string): boolean {
+  return CARD_PAYMENT.test(description.normalize("NFD").replace(/[̀-ͯ]/g, ""));
+}
+
+/**
+ * Parcelas que uma linha de fatura importada representa: a desta fatura e as próximas.
+ * A parcela da linha vai para `statementMonth` (a fatura sendo importada); as seguintes, mês a mês.
+ * Data de cada parcela: se a data da linha é da própria parcela (perto da fatura), as próximas seguem
+ * mês a mês a partir dela; se é a data da compra original (muito antes), parcela k = compra + (k−1) meses,
+ * igual às parcelas lançadas à mão.
+ */
+export function importedInstallments(args: {
+  rowDate: ISODate;
+  no: number;
+  total: number;
+  statementMonth: YearMonth;
+  closingDay: number;
+}): { no: number; date: ISODate; statementMonth: YearMonth }[] {
+  const ownDate = statementMonthFor(args.rowDate, args.closingDay) >= addYearMonth(args.statementMonth, -1);
+  const out: { no: number; date: ISODate; statementMonth: YearMonth }[] = [];
+  for (let k = args.no; k <= args.total; k++) {
+    out.push({
+      no: k,
+      date: ownDate ? addMonths(args.rowDate, k - args.no) : addMonths(args.rowDate, k - 1),
+      statementMonth: addYearMonth(args.statementMonth, k - args.no),
+    });
+  }
+  return out;
 }
