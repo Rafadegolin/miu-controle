@@ -96,7 +96,7 @@ describe("web push", () => {
     const headers = calls[0]?.init.headers as Record<string, string>;
     expect(headers.Authorization).toMatch(new RegExp(`^vapid t=.+, k=${keys.publicKey}$`));
     expect(headers["Content-Encoding"]).toBe("aes128gcm");
-    expect(headers.Topic).toBe("teste");
+    expect(headers.Topic).toBeUndefined(); // a Apple recusa o Topic (BadWebPushTopic)
     const payload = JSON.parse(await decrypt(d, calls[0]?.init.body as Uint8Array));
     expect(payload).toEqual({ title: "Teste", body: "Funcionou", url: "/inicio", tag: "teste" });
 

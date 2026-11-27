@@ -151,8 +151,8 @@ export function webPushSender(
         TTL: String(24 * 3600),
         Urgency: "normal",
       };
-      // Topic: substitui notificação ainda não entregue com o mesmo assunto (até 32 caracteres seguros).
-      if (message.tag) headers.Topic = message.tag.replace(/[^A-Za-z0-9_-]/g, "").slice(0, 32);
+      // Sem o cabeçalho Topic: a Apple recusa (400 BadWebPushTopic). Quem evita notificação repetida
+      // empilhada é a `tag`, aplicada no aparelho pelo push-sw.js.
       const res = await fetcher(sub.endpoint, { method: "POST", headers, body });
       const gone = res.status === 404 || res.status === 410;
       if (res.ok) return { ok: true, status: res.status, gone };
