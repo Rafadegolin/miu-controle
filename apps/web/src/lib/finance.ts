@@ -1,5 +1,6 @@
 import type {
   Account,
+  BoxMove,
   BudgetMonth,
   BulkResult,
   BulkTransactions,
@@ -228,6 +229,17 @@ export async function deleteGoal(id: string) {
 }
 export const contribute = async (id: string, amountCents: number, date: string) =>
   readJson<Goal>(await api.goals[":id"].contributions.$post({ param: { id }, json: { amountCents, date } }));
+/** Caixinha: guardar (sai da conta) ou resgatar (volta para ela). */
+export const moveBox = async (id: string, body: BoxMove) =>
+  readJson<Goal>(await api.goals[":id"].move.$post({ param: { id }, json: body }));
+/** Meta simples vira caixinha (com o que já foi guardado). */
+export const convertGoal = async (id: string, cdiPercent: number | null) =>
+  readJson<Goal>(await api.goals[":id"].convert.$post({ param: { id }, json: { cdiPercent } }));
+/** "Ajustar com o saldo do banco": lança a diferença. */
+export const adjustBalance = async (accountId: string, balanceCents: number) =>
+  readJson<Account>(
+    await api.accounts[":id"].adjust.$post({ param: { id: accountId }, json: { balanceCents } }),
+  );
 export const deleteContribution = async (id: string, cid: string) =>
   readJson<Goal>(await api.goals[":id"].contributions[":cid"].$delete({ param: { id, cid } }));
 

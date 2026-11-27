@@ -1,6 +1,6 @@
 import { monthToDate, statementMonthFor } from "@miu/core";
 import { and, asc, eq, gte, isNull, or, schema, sql } from "@miu/db";
-import { type Account, createAccountSchema, updateAccountSchema } from "@miu/shared";
+import { type Account, adjustBalanceSchema, createAccountSchema, updateAccountSchema } from "@miu/shared";
 import { Hono } from "hono";
 import type { App } from "../env";
 import { HttpError } from "../lib/errors";
@@ -8,7 +8,7 @@ import { accountBalances, ownedAccount, userToday } from "../lib/user-data";
 import { valid } from "../lib/validate";
 import { requireUser } from "../middleware/auth";
 
-const { accounts, transactions } = schema;
+const { accounts, transactions, categories } = schema;
 
 type Row = typeof accounts.$inferSelect;
 const toDto = (a: Row, balances: Map<string, number>): Account => ({
@@ -19,6 +19,7 @@ const toDto = (a: Row, balances: Map<string, number>): Account => ({
   institution: a.institution,
   cardBrand: (a.cardBrand as Account["cardBrand"]) ?? null,
   payFromAccountId: a.payFromAccountId,
+  cdiPercent: a.cdiPercent,
   initialBalanceCents: a.initialBalanceCents,
   balanceCents: a.initialBalanceCents + (balances.get(a.id) ?? 0),
   archived: a.archivedAt !== null,
@@ -27,6 +28,9 @@ const toDto = (a: Row, balances: Map<string, number>): Account => ({
       ? { creditLimitCents: a.creditLimitCents ?? 0, closingDay: a.closingDay, dueDay: a.dueDay }
       : null,
 });
+
+/** Tipos de conta que podem render pelo CDI (caixinha, investimento). */
+const RENDE = new Set(["savings", "investment"]);
 
 /** Conta que paga a fatura: do mesmo usuário (senão 404), ativa e que não seja cartão. */
 async function checkPayFrom(db: ReturnType<App["Variables"]["db"]>, userId: string, id: string) {
@@ -61,6 +65,9 @@ export const accountsRoutes = new Hono<App>()
     const userId = c.var.user.id;
     if (body.kind === "credit_card" && body.payFromAccountId)
       await checkPayFrom(db, userId, body.payFromAccountId);
+    if (body.kind !== "credit_card" && body.cdiPercent && !RENDE.has(body.kind)) {
+      throw new HttpError(400, "dados_invalidos", "Só poupança e investimento rendem pelo CDI.");
+    }
     const [{ n } = { n: 0 }] = await db
       .select({ n: sql<number>`count(*)::int` })
       .from(accounts)
@@ -93,6 +100,9 @@ export const accountsRoutes = new Hono<App>()
       );
     }
     if (card && patch.payFromAccountId) await checkPayFrom(db, userId, patch.payFromAccountId);
+    if (patch.cdiPercent && !RENDE.has(current.kind)) {
+      throw new HttpError(400, "dados_invalidos", "Só poupança e investimento rendem pelo CDI.");
+    }
     if (card && patch.initialBalanceCents !== undefined) {
       throw new HttpError(
         400,
@@ -129,6 +139,56 @@ export const accountsRoutes = new Hono<App>()
         );
     }
     return c.json(await withBalance(db, userId, row));
+  })
+  /**
+   * "Ajustar com o saldo do banco": informa o saldo real e lança a diferença.
+   * Em caixinha que rende, a diferença positiva entra como rendimento (categoria Rendimentos).
+   */
+  .post("/:id/adjust", valid("json", adjustBalanceSchema), async (c) => {
+    const db = c.var.db();
+    const userId = c.var.user.id;
+    const { balanceCents, date } = c.req.valid("json");
+    const acc = await ownedAccount(db, userId, c.req.param("id"), { activeOnly: true });
+    if (acc.kind === "credit_card") {
+      throw new HttpError(
+        400,
+        "dados_invalidos",
+        "Para o cartão, lance as compras ou o pagamento da fatura.",
+      );
+    }
+    const [balances, today] = await Promise.all([accountBalances(db, userId), userToday(db, userId)]);
+    const current = acc.initialBalanceCents + (balances.get(acc.id) ?? 0);
+    const diff = balanceCents - current;
+    if (diff !== 0) {
+      const kind = diff > 0 ? "income" : "expense";
+      const isYield = kind === "income" && acc.cdiPercent !== null;
+      const [cat] = await db
+        .select({ id: categories.id })
+        .from(categories)
+        .where(
+          and(
+            eq(categories.userId, userId),
+            eq(categories.kind, kind),
+            eq(
+              categories.name,
+              kind === "income" ? (isYield ? "Rendimentos" : "Outras receitas") : "Outros gastos",
+            ),
+          ),
+        );
+      await db.insert(transactions).values({
+        id: crypto.randomUUID(),
+        userId,
+        accountId: acc.id,
+        kind,
+        amountCents: Math.abs(diff),
+        categoryId: cat?.id ?? null,
+        date: date ?? today,
+        description: isYield ? "Rendimento (ajuste com o saldo do banco)" : "Ajuste de saldo",
+        status: "posted",
+        source: "manual",
+      });
+    }
+    return c.json(await withBalance(db, userId, acc));
   })
   .post("/:id/archive", async (c) => {
     const db = c.var.db();

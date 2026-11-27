@@ -116,7 +116,19 @@ export const dashboardRoutes = new Hono<App>()
           targetCents: goals.targetCents,
           targetDate: goals.targetDate,
           // Colunas qualificadas à mão: dentro de subconsulta o Drizzle não prefixa a tabela.
-          saved: sql<string>`coalesce((select sum(gc.amount_cents) from goal_contributions gc where gc.goal_id = goals.id), 0)`,
+          // Meta-caixinha: o guardado é o saldo realizado da conta; meta simples: soma dos aportes.
+          saved: sql<string>`case when goals.account_id is not null then (
+            select a.initial_balance_cents + coalesce((
+              select sum(case
+                when t.kind = 'transfer' and t.to_account_id = a.id then t.amount_cents
+                when t.account_id = a.id and t.kind = 'income' then t.amount_cents
+                when t.account_id = a.id then -t.amount_cents
+                else 0 end)
+              from transactions t
+              where t.status = 'posted' and (t.account_id = a.id or t.to_account_id = a.id)
+            ), 0)
+            from accounts a where a.id = goals.account_id
+          ) else coalesce((select sum(gc.amount_cents) from goal_contributions gc where gc.goal_id = goals.id), 0) end`,
         })
         .from(goals)
         .where(and(eq(goals.userId, userId), sql`${goals.archivedAt} is null`)),

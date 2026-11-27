@@ -72,6 +72,13 @@ function AccountForm({
     (institutionBySlug(account?.institution)?.slug as InstitutionSlug | undefined) ?? null,
   );
   const [cardBrand, setCardBrand] = useState<CardBrand | null>(account?.cardBrand ?? null);
+  // Poupança/investimento que rende: % do CDI (vazio = não rende).
+  const canYield = kind === "savings" || kind === "investment";
+  const [cdi, setCdi] = useState(account?.cdiPercent ? String(account.cdiPercent / 100) : "");
+  const cdiValue = () => {
+    const v = Number(cdi.replace(",", "."));
+    return canYield && cdi.trim() && v > 0 && v <= 500 ? Math.round(v * 100) : null;
+  };
   // Conta que paga a fatura: as contas ativas (não cartões). Padrão = a do mesmo banco, ou a única.
   const { data: allAccounts = [] } = useQuery(accountsQuery);
   const payers = allAccounts.filter((a) => !a.card && !a.archived && a.id !== account?.id);
@@ -145,13 +152,20 @@ function AccountForm({
       const initialBalanceCents = balance.trim() ? parseBRL(balance) : 0;
       if (initialBalanceCents === null) throw fail("Digite o saldo como 1.234,56.");
       return account
-        ? updateAccount(account.id, { name: name.trim(), color, institution, initialBalanceCents })
+        ? updateAccount(account.id, {
+            name: name.trim(),
+            color,
+            institution,
+            initialBalanceCents,
+            ...(canYield ? { cdiPercent: cdiValue() } : {}),
+          })
         : createAccount({
             name: name.trim(),
             kind: kind as Exclude<AccountKind, "credit_card">,
             color,
             institution,
             initialBalanceCents,
+            ...(canYield && cdiValue() ? { cdiPercent: cdiValue() } : {}),
           });
     },
     onSuccess: () => finish(account ? "Alterações salvas" : isCard ? "Cartão criado" : "Conta criada"),
@@ -314,6 +328,23 @@ function AccountForm({
           )}
         </Field>
       )}
+      {canYield ? (
+        <Field
+          label="Rende quanto do CDI? (opcional)"
+          hint="Ex.: 100 para 100% do CDI. O Miu busca a taxa no Banco Central e lança o rendimento todo mês."
+        >
+          {(p) => (
+            <Input
+              {...p}
+              inputMode="decimal"
+              className="num"
+              placeholder="100"
+              value={cdi}
+              onChange={(e) => setCdi(e.target.value)}
+            />
+          )}
+        </Field>
+      ) : null}
 
       <div className="flex flex-col gap-1.5">
         <span className="text-[13px] font-medium text-muted">Cor</span>

@@ -58,6 +58,16 @@ export const createGoalSchema = z
     color: color.default("#1fbf8f"),
     /** Quanto já tem guardado para isso, se tiver. */
     initialCents: z.number().int().min(0).max(MAX).optional(),
+    /**
+     * Guardar numa caixinha (conta poupança criada para a meta): o dinheiro sai de uma conta ao
+     * guardar. cdiPercent = % do CDI × 100 (10000 = 100%); null = não rende.
+     */
+    box: z
+      .object({ cdiPercent: z.number().int().min(1).max(50000).nullable() })
+      .strict()
+      .optional(),
+    /** Ou ligar a uma poupança/investimento que você já tem. */
+    accountId: z.string().min(1).max(64).optional(),
   })
   .strict();
 export type CreateGoal = z.input<typeof createGoalSchema>;
@@ -100,6 +110,42 @@ export type Goal = {
   monthlyNeededCents: number | null;
   /** Média de aportes por mês nos últimos 3 meses. */
   recentMonthlyCents: number;
+  /** Caixinha da meta: o guardado é o saldo dela. null = meta só de acompanhamento. */
+  box: {
+    accountId: string;
+    accountName: string;
+    /** % do CDI × 100 (10000 = 100%); null = não rende. */
+    cdiPercent: number | null;
+    /** Rendimento estimado do mês atual até hoje. */
+    monthYieldCents: number;
+    /** CDI atual em % ao ano (null sem taxa ainda). */
+    cdiAnnualPercent: number | null;
+  } | null;
 };
 
-export type GoalContribution = { id: string; amountCents: number; date: string; note: string | null };
+export type GoalContribution = {
+  id: string;
+  amountCents: number;
+  date: string;
+  note: string | null;
+  /** Movimento da caixinha (transferência ou rendimento): não se apaga por aqui. */
+  fromBox?: boolean;
+};
+
+/** Guardar (in) na caixinha a partir de uma conta, ou resgatar (out) para ela. */
+export const boxMoveSchema = z
+  .object({
+    direction: z.enum(["in", "out"]),
+    amountCents: z.number().int().positive("Informe um valor.").max(MAX),
+    /** Conta de onde sai (guardar) ou para onde volta (resgatar). */
+    accountId: z.string().min(1).max(64),
+    date: isoDate,
+  })
+  .strict();
+export type BoxMove = z.infer<typeof boxMoveSchema>;
+
+/** Transformar uma meta só de acompanhamento em caixinha. */
+export const convertGoalSchema = z
+  .object({ cdiPercent: z.number().int().min(1).max(50000).nullable() })
+  .strict();
+export type ConvertGoal = z.infer<typeof convertGoalSchema>;

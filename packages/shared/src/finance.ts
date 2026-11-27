@@ -133,6 +133,8 @@ export const createAccountSchema = z.discriminatedUnion("kind", [
       name,
       kind: z.enum(BANK_ACCOUNT_KINDS),
       initialBalanceCents: z.number().int().min(-MAX_CENTS).max(MAX_CENTS).default(0),
+      /** Caixinha que rende: % do CDI × 100 (10000 = 100%). Só poupança/investimento. */
+      cdiPercent: z.number().int().min(1).max(50000).nullable().optional(),
       color: color.default("#1fbf8f"),
       institution: z.enum(INSTITUTION_SLUGS).nullable().optional(),
     })
@@ -166,6 +168,7 @@ export const updateAccountSchema = z
     dueDay: day.optional(),
     cardBrand: z.enum(CARD_BRAND_SLUGS).nullable().optional(),
     payFromAccountId: z.string().min(1).nullable().optional(),
+    cdiPercent: z.number().int().min(1).max(50000).nullable().optional(),
   })
   .strict();
 export type UpdateAccount = z.infer<typeof updateAccountSchema>;
@@ -183,6 +186,8 @@ export type Account = {
   cardBrand: CardBrand | null;
   /** Só em cartão: conta que paga a fatura (a projeção desconta dela). */
   payFromAccountId: string | null;
+  /** Caixinha que rende: % do CDI × 100 (10000 = 100%). */
+  cdiPercent: number | null;
   initialBalanceCents: number;
   /**
    * Derivado: saldo inicial + lançamentos realizados.
@@ -417,3 +422,15 @@ export type QuickSuggestions = {
   /** Último usado em cada tipo: vira o padrão do formulário. */
   last: Record<"expense" | "income", { accountId: string; categoryId: string | null } | null>;
 };
+
+/** "Ajustar com o saldo do banco": informa o saldo real e o Miu lança a diferença. */
+export const adjustBalanceSchema = z
+  .object({
+    balanceCents: z.number().int().min(-MAX_CENTS).max(MAX_CENTS),
+    date: z
+      .string()
+      .regex(/^\d{4}-\d{2}-\d{2}$/)
+      .optional(),
+  })
+  .strict();
+export type AdjustBalance = z.infer<typeof adjustBalanceSchema>;

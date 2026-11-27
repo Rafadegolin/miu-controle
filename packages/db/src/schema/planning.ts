@@ -1,7 +1,17 @@
 import { sql } from "drizzle-orm";
-import { bigint, check, date, index, pgTable, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
+import {
+  bigint,
+  check,
+  date,
+  doublePrecision,
+  index,
+  pgTable,
+  text,
+  timestamp,
+  uniqueIndex,
+} from "drizzle-orm/pg-core";
 import { user } from "./auth";
-import { categories } from "./finance";
+import { accounts, categories, transactions } from "./finance";
 
 const timestamps = {
   createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
@@ -51,6 +61,8 @@ export const goals = pgTable(
     targetCents: bigint({ mode: "number" }).notNull(),
     targetDate: date({ mode: "string" }),
     color: text().notNull(),
+    /** Caixinha da meta (conta poupança): o guardado é o saldo dela. Sem conta: só acompanha aportes. */
+    accountId: text().references(() => accounts.id, { onDelete: "set null" }),
     archivedAt: timestamp({ withTimezone: true }),
     ...timestamps,
   },
@@ -74,4 +86,30 @@ export const goalContributions = pgTable(
     createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [index().on(t.goalId, t.date), check("goal_contrib_amount_check", sql`${t.amountCents} <> 0`)],
+);
+
+/** Taxa CDI diária (% ao dia) do Banco Central, série SGS 12. Uma linha por dia útil. */
+export const cdiRates = pgTable("cdi_rates", {
+  date: date({ mode: "string" }).primaryKey(),
+  ratePercent: doublePrecision().notNull(),
+});
+
+/** Rendimento já lançado em cada caixinha por mês: a rotina diária nunca lança duas vezes. */
+export const yieldPostings = pgTable(
+  "yield_postings",
+  {
+    id: text().primaryKey(),
+    userId: text()
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    accountId: text()
+      .notNull()
+      .references(() => accounts.id, { onDelete: "cascade" }),
+    /** YYYY-MM */
+    month: text().notNull(),
+    transactionId: text().references(() => transactions.id, { onDelete: "set null" }),
+    amountCents: bigint({ mode: "number" }).notNull(),
+    createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex().on(t.accountId, t.month), index().on(t.userId)],
 );

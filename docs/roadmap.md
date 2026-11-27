@@ -55,16 +55,17 @@ Estado em 2026-11-27. Produção: https://miu-controle.miu-api.workers.dev (push
   - "Pagamento de fatura" no extrato da conta vira transferência para o cartão ligado;
   - repetidos em ±2 dias;
   - desfazer apaga também as parcelas futuras.
+- **F3. Caixinhas com rendimento (% do CDI):**
+  - a meta pode ser uma caixinha: conta `savings` ligada (`goals.account_id`), o guardado é o saldo dela;
+  - guardar e resgatar são transferências de/para uma conta; meta simples continua igual e pode "Transformar em caixinha";
+  - `cdi_percent` em poupança/investimento; o Cron busca o CDI (SGS série 12) em `cdi_rates` e lança o
+    rendimento do mês anterior em Rendimentos (idempotente via `yield_postings`); a tela estima o do mês atual;
+  - "Ajustar saldo" lança a diferença com o saldo do banco.
 
 ## Próximos passos
 
-### F2–F4 (plano aprovado em 2026-11-27)
+### F4 (plano aprovado em 2026-11-27)
 
-- **F3. Caixinhas:**
-  - a meta fica ligada a uma conta `savings`;
-  - aportar e resgatar são transferências;
-  - rendimento por % do CDI (API SGS do Banco Central, série 12, via Cron), lançado todo mês;
-  - "ajustar com o saldo do banco".
 - **F4. Futuro:**
   - tela de patrimônio projetado em 12 a 24 meses, com marcos;
   - simulador "e se" (cortar categoria, guardar mais, compra parcelada, renda);

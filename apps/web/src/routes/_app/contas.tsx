@@ -176,7 +176,10 @@ function AccountCard({
         <InstitutionLogo account={a} />
         <span className="min-w-0 flex-1">
           <span className="block truncate font-semibold">{a.name}</span>
-          <span className="text-[13px] text-muted">{ACCOUNT_KIND_LABEL[a.kind]}</span>
+          <span className="text-[13px] text-muted">
+            {ACCOUNT_KIND_LABEL[a.kind]}
+            {a.cdiPercent ? ` · rende ${(a.cdiPercent / 100).toLocaleString("pt-BR")}% do CDI` : ""}
+          </span>
         </span>
         <Button size="sm" variant="ghost" onClick={onEdit}>
           Editar

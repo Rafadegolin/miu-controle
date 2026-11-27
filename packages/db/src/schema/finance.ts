@@ -53,6 +53,8 @@ export const accounts = pgTable(
     cardBrand: text(),
     /** Só em cartão: conta de onde sai o pagamento da fatura (a projeção desconta dela). */
     payFromAccountId: text().references((): AnyPgColumn => accounts.id, { onDelete: "set null" }),
+    /** Caixinha/investimento que rende: % do CDI × 100 (10000 = 100% do CDI). */
+    cdiPercent: integer(),
     // Cartão de crédito (Fase 3)
     creditLimitCents: bigint({ mode: "number" }),
     closingDay: integer(),
@@ -71,6 +73,10 @@ export const accounts = pgTable(
     check(
       "accounts_pay_from_check",
       sql`${t.payFromAccountId} is null or (${t.kind} = 'credit_card' and ${t.payFromAccountId} <> ${t.id})`,
+    ),
+    check(
+      "accounts_cdi_check",
+      sql`${t.cdiPercent} is null or (${t.kind} in ('savings', 'investment') and ${t.cdiPercent} between 1 and 50000)`,
     ),
     check("accounts_card_brand_check", sql`${t.cardBrand} is null or ${t.kind} = 'credit_card'`),
     check("accounts_days_check", sql`${t.closingDay} between 1 and 28 and ${t.dueDay} between 1 and 28`),
