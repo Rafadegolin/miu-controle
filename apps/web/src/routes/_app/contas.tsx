@@ -10,7 +10,7 @@ import { useQuickAdd } from "@/components/quick-add";
 import { CardsSkeleton } from "@/components/skeletons";
 import { Button, Card } from "@/components/ui";
 import { cn } from "@/lib/cn";
-import { accountsQuery } from "@/lib/finance";
+import { accountsQuery, projectionQuery } from "@/lib/finance";
 import { money } from "@/lib/format";
 import { awaitData } from "@/lib/loaders";
 
@@ -23,6 +23,9 @@ export const Route = createFileRoute("/_app/contas")({
 
 function Contas() {
   const { data: accounts = [], isPending } = useQuery(accountsQuery);
+  const projection = useQuery(projectionQuery(1));
+  const endOfMonth = projection.data?.months[0];
+  const byIdMap = new Map(accounts.map((a) => [a.id, a]));
   const { openNew } = useQuickAdd();
   const [sheet, setSheet] = useState<{ open: boolean; account: Account | null; kind?: AccountKind }>({
     open: false,
@@ -83,7 +86,14 @@ function Contas() {
       {banks.length ? (
         <div className="rise grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {banks.map((a) => (
-            <AccountCard key={a.id} account={a} onEdit={() => setSheet({ open: true, account: a })} />
+            <AccountCard
+              key={a.id}
+              account={a}
+              projected={endOfMonth?.accounts[a.id]}
+              monthEnd={endOfMonth?.month}
+              paysCards={accounts.filter((c) => c.card && !c.archived && c.payFromAccountId === a.id)}
+              onEdit={() => setSheet({ open: true, account: a })}
+            />
           ))}
         </div>
       ) : null}
@@ -103,7 +113,12 @@ function Contas() {
         ) : (
           <div className="rise grid gap-4 sm:grid-cols-2">
             {cards.map((a) => (
-              <CardSummary key={a.id} account={a} onEdit={() => setSheet({ open: true, account: a })} />
+              <CardSummary
+                key={a.id}
+                account={a}
+                payer={a.payFromAccountId ? byIdMap.get(a.payFromAccountId) : undefined}
+                onEdit={() => setSheet({ open: true, account: a })}
+              />
             ))}
           </div>
         )}
@@ -114,7 +129,14 @@ function Contas() {
           <h3 className="text-sm font-semibold text-muted">Arquivadas</h3>
           <div className="grid gap-4 opacity-70 sm:grid-cols-2 lg:grid-cols-3">
             {archived.map((a) => (
-              <AccountCard key={a.id} account={a} onEdit={() => setSheet({ open: true, account: a })} />
+              <AccountCard
+                key={a.id}
+                account={a}
+                projected={endOfMonth?.accounts[a.id]}
+                monthEnd={endOfMonth?.month}
+                paysCards={accounts.filter((c) => c.card && !c.archived && c.payFromAccountId === a.id)}
+                onEdit={() => setSheet({ open: true, account: a })}
+              />
             ))}
           </div>
         </section>
@@ -130,7 +152,24 @@ function Contas() {
   );
 }
 
-function AccountCard({ account: a, onEdit }: { account: Account; onEdit: () => void }) {
+function AccountCard({
+  account: a,
+  onEdit,
+  projected,
+  monthEnd,
+  paysCards,
+}: {
+  account: Account;
+  onEdit: () => void;
+  /** Saldo previsto no fim do mês (projeção). */
+  projected?: number | undefined;
+  monthEnd?: string | undefined;
+  /** Cartões cuja fatura sai desta conta. */
+  paysCards: Account[];
+}) {
+  const lastDay = monthEnd
+    ? new Date(Number(monthEnd.slice(0, 4)), Number(monthEnd.slice(5, 7)), 0).getDate()
+    : null;
   return (
     <Card className="flex flex-col gap-3.5 p-5">
       <div className="flex items-center gap-3">
@@ -148,6 +187,25 @@ function AccountCard({ account: a, onEdit }: { account: Account; onEdit: () => v
       >
         <AnimatedNumber value={a.balanceCents} />
       </p>
+      {projected !== undefined && monthEnd && !a.archived ? (
+        <p className="-mt-2 text-[13px] text-muted">
+          Previsto em {lastDay}/{monthEnd.slice(5, 7)}:{" "}
+          <b className={cn("num font-semibold", projected < 0 ? "text-danger" : "text-fg")}>
+            {money(projected)}
+          </b>
+        </p>
+      ) : null}
+      {paysCards.length ? (
+        <p className="-mt-1.5 flex flex-wrap items-center gap-1.5 text-[13px] text-muted">
+          Paga a fatura de
+          {paysCards.map((c) => (
+            <span key={c.id} className="inline-flex items-center gap-1 font-medium text-fg-2">
+              <InstitutionLogo account={c} className="size-4 rounded-[4px]" />
+              {c.name}
+            </span>
+          ))}
+        </p>
+      ) : null}
       <Link
         to="/lancamentos"
         search={{ conta: a.id }}
@@ -159,7 +217,16 @@ function AccountCard({ account: a, onEdit }: { account: Account; onEdit: () => v
   );
 }
 
-function CardSummary({ account: a, onEdit }: { account: Account; onEdit: () => void }) {
+function CardSummary({
+  account: a,
+  onEdit,
+  payer,
+}: {
+  account: Account;
+  onEdit: () => void;
+  /** Conta que paga a fatura. */
+  payer?: Account | undefined;
+}) {
   const limit = a.card?.creditLimitCents ?? 0;
   const used = Math.max(0, -a.balanceCents);
   const pct = limit ? Math.min(100, (used / limit) * 100) : 0;
@@ -171,6 +238,7 @@ function CardSummary({ account: a, onEdit }: { account: Account; onEdit: () => v
           <span className="block truncate font-semibold">{a.name}</span>
           <span className="text-[13px] text-muted">
             Fecha dia {a.card?.closingDay} · vence dia {a.card?.dueDay}
+            {payer ? ` · paga pelo ${payer.name}` : ""}
           </span>
         </span>
         <CardBrandMark brand={a.cardBrand} />

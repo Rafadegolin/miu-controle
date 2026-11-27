@@ -22,6 +22,7 @@ import type {
   MonthSummary,
   Pace,
   PreviewImport,
+  Projection,
   QuickSuggestions,
   RecurringRule,
   RecurringYear,
@@ -115,6 +116,7 @@ export function invalidateMoney(queryClient: QueryClient) {
     queryClient.invalidateQueries({ queryKey: ["import-batches"] }),
     queryClient.invalidateQueries({ queryKey: ["pace"] }),
     queryClient.invalidateQueries({ queryKey: ["suggestions"] }),
+    queryClient.invalidateQueries({ queryKey: ["projection"] }),
     queryClient.invalidateQueries({ queryKey: ["recurring-year"] }),
   ]);
 }
@@ -288,3 +290,12 @@ export const suggestionsQuery = queryOptions({
   queryFn: async () => readJson<QuickSuggestions>(await api.transactions.suggestions.$get()),
   staleTime: 5 * 60_000,
 });
+
+/** Saldo previsto das contas mês a mês (o mês atual primeiro). */
+export const projectionQuery = (months = 4) =>
+  queryOptions({
+    queryKey: ["projection", months],
+    queryFn: async () =>
+      readJson<Projection>(await api.insights.projection.$get({ query: { months: String(months) } })),
+    staleTime: 60_000,
+  });

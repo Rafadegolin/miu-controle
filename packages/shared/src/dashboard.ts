@@ -93,4 +93,27 @@ export type Pace = {
   dailyAllowanceCents: number | null;
   /** Média de gastos dos 3 meses anteriores (sugestão de limite). */
   averageCents: number;
+  /** Mês atual: quanto deve fechar de gastos se o ritmo continuar. Meses passados: o total. */
+  projectedMonthCents: number;
+};
+
+/* ---------- projeção das contas ---------- */
+
+export type ProjectedMonth = {
+  month: string;
+  /** Soma das contas + faturas de cartões sem conta ligada. */
+  totalCents: number;
+  /** Saldo previsto no fim do mês, por conta (só contas, sem cartões). */
+  accounts: Record<string, number>;
+  /** Faturas de cartões sem conta ligada, acumuladas (negativo). */
+  unassignedCents: number;
+};
+
+export type Projection = {
+  today: string;
+  months: ProjectedMonth[];
+  /** Primeiro mês em que uma conta (ou o total, se accountId = null) fica negativa. */
+  firstNegative: { month: string; accountId: string | null } | null;
+  /** Cartões sem conta de pagamento ligada (a fatura entra só no total). */
+  cardsWithoutPayer: string[];
 };

@@ -1,5 +1,6 @@
 import { sql } from "drizzle-orm";
 import {
+  type AnyPgColumn,
   bigint,
   boolean,
   check,
@@ -50,6 +51,8 @@ export const accounts = pgTable(
     institution: text(),
     /** Só em cartão: bandeira (visa, mastercard, elo, amex, hipercard, diners). */
     cardBrand: text(),
+    /** Só em cartão: conta de onde sai o pagamento da fatura (a projeção desconta dela). */
+    payFromAccountId: text().references((): AnyPgColumn => accounts.id, { onDelete: "set null" }),
     // Cartão de crédito (Fase 3)
     creditLimitCents: bigint({ mode: "number" }),
     closingDay: integer(),
@@ -64,6 +67,10 @@ export const accounts = pgTable(
     check(
       "accounts_card_fields_check",
       sql`(${t.kind} = 'credit_card') = (${t.closingDay} is not null and ${t.dueDay} is not null)`,
+    ),
+    check(
+      "accounts_pay_from_check",
+      sql`${t.payFromAccountId} is null or (${t.kind} = 'credit_card' and ${t.payFromAccountId} <> ${t.id})`,
     ),
     check("accounts_card_brand_check", sql`${t.cardBrand} is null or ${t.kind} = 'credit_card'`),
     check("accounts_days_check", sql`${t.closingDay} between 1 and 28 and ${t.dueDay} between 1 and 28`),

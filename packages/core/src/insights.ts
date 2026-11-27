@@ -50,3 +50,27 @@ export function paceStatus(current: Cents, previousSameDay: Cents): PaceStatus {
   if (ratio <= 1 + PACE_TOLERANCE) return "near";
   return "above";
 }
+
+/**
+ * Quanto o mês deve fechar de gastos, se o ritmo continuar.
+ * = gasto até hoje + previstos que faltam (contas fixas, parcelas) + gasto variável diário × dias restantes.
+ * O ritmo diário mistura o mês atual com a média histórica: no começo do mês vale mais o histórico
+ * (poucos dias não dizem muito); perto do fim, o ritmo atual.
+ */
+export function projectMonthSpend(args: {
+  spentCents: Cents;
+  /** Parte variável do gasto até hoje (sem recorrências e parcelas). */
+  variableSpentCents: Cents;
+  plannedRemainingCents: Cents;
+  day: number;
+  daysInMonth: number;
+  /** Gasto variável médio por dia nos meses anteriores (0 se não houver histórico). */
+  historyDailyCents: number;
+}): Cents {
+  const daysLeft = Math.max(0, args.daysInMonth - args.day);
+  const currentDaily = args.day > 0 ? args.variableSpentCents / args.day : 0;
+  const weight = args.daysInMonth > 0 ? args.day / args.daysInMonth : 1;
+  const daily =
+    args.historyDailyCents > 0 ? weight * currentDaily + (1 - weight) * args.historyDailyCents : currentDaily;
+  return args.spentCents + args.plannedRemainingCents + Math.round(daily * daysLeft);
+}

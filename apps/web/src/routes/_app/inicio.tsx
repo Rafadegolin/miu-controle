@@ -1,4 +1,4 @@
-import type { Account, BudgetLine, Category, Dashboard, Pace } from "@miu/shared";
+import type { Account, BudgetLine, Category, Dashboard, Pace, Projection } from "@miu/shared";
 import { useQuery, useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import {
@@ -9,6 +9,7 @@ import {
   CloudOff,
   CreditCard,
   Target,
+  TriangleAlert,
   Wallet,
 } from "lucide-react";
 import { type ReactNode, useState } from "react";
@@ -24,8 +25,15 @@ import { StatusPill } from "@/components/status-pill";
 import { byId, TransactionRow } from "@/components/transaction-row";
 import { Button, Card, CardTitle, DeltaPill } from "@/components/ui";
 import { cn } from "@/lib/cn";
-import { accountsQuery, budgetsQuery, categoriesQuery, dashboardQuery, paceQuery } from "@/lib/finance";
-import { dayShort, MONTHS_SHORT, money, WEEKDAYS } from "@/lib/format";
+import {
+  accountsQuery,
+  budgetsQuery,
+  categoriesQuery,
+  dashboardQuery,
+  paceQuery,
+  projectionQuery,
+} from "@/lib/finance";
+import { dayShort, MONTHS, MONTHS_SHORT, money, WEEKDAYS } from "@/lib/format";
 import { awaitData } from "@/lib/loaders";
 import { meQuery } from "@/lib/me";
 
@@ -35,6 +43,7 @@ export const Route = createFileRoute("/_app/inicio")({
     return awaitData([
       qc.ensureQueryData(dashboardQuery),
       qc.ensureQueryData(paceQuery()),
+      qc.ensureQueryData(projectionQuery(4)),
       qc.ensureQueryData(accountsQuery),
       qc.ensureQueryData(categoriesQuery),
     ]);
@@ -59,6 +68,7 @@ function Inicio() {
   );
   const dash = useQuery(dashboardQuery);
   const pace = useQuery(paceQuery());
+  const projection = useQuery(projectionQuery(4));
   const accounts = useQuery(accountsQuery);
   const categories = useQuery(categoriesQuery);
   const d = dash.data;
@@ -126,7 +136,7 @@ function Inicio() {
         <DistributionCard dash={d} catMap={catMap} budgetLines={budgets.data?.lines ?? []} />
 
         <ResultCard dash={d} />
-        <BalanceCard dash={d} banks={banks} />
+        <BalanceCard dash={d} banks={banks} projection={projection.data} accounts={accMap} />
         <StatementsCard dash={d} accMap={accMap} />
 
         <UpcomingCard dash={d} accMap={accMap} catMap={catMap} />
@@ -183,6 +193,7 @@ function SpendingCard({ pace }: { pace?: Pace | undefined }) {
           previous={pace.previous}
           daysInMonth={pace.daysInMonth}
           status={pace.status}
+          projectedEnd={pace.isCurrentMonth ? pace.projectedMonthCents : undefined}
           badge={
             pace.previousToDateCents > 0 || pace.spentCents > 0 ? (
               <span
@@ -196,8 +207,25 @@ function SpendingCard({ pace }: { pace?: Pace | undefined }) {
             ) : null
           }
         />
+        {pace.isCurrentMonth && pace.daysLeft > 1 ? (
+          <p className="text-[15px] text-fg-2">
+            Nesse ritmo, o mês fecha em <b className="num text-fg">{whole(pace.projectedMonthCents)}</b>
+            {pace.limitCents ? (
+              <span
+                className={cn(
+                  "num",
+                  pace.projectedMonthCents > pace.limitCents ? "text-danger" : "text-primary",
+                )}
+              >
+                {" "}
+                ({whole(Math.abs(pace.projectedMonthCents - pace.limitCents))}{" "}
+                {pace.projectedMonthCents > pace.limitCents ? "acima" : "abaixo"} do limite)
+              </span>
+            ) : null}
+          </p>
+        ) : null}
         <p className="text-[13px] text-faint">
-          Tracejado: o mês passado (até hoje, {whole(pace.previousToDateCents)})
+          Tracejado: o mês passado (até hoje, {whole(pace.previousToDateCents)}) · pontilhado: a projeção
         </p>
         <div className="mt-auto">
           {editing ? (
@@ -383,7 +411,23 @@ function Flow({
 
 /* ---------- Saldo em contas ---------- */
 
-function BalanceCard({ dash, banks }: { dash: Dashboard; banks: Account[] }) {
+function BalanceCard({
+  dash,
+  banks,
+  projection,
+  accounts,
+}: {
+  dash: Dashboard;
+  banks: Account[];
+  projection?: Projection | undefined;
+  accounts: Map<string, Account>;
+}) {
+  const ahead = projection?.months.slice(1) ?? [];
+  const maxAbs = Math.max(1, ...ahead.map((m) => Math.abs(m.totalCents)));
+  const neg = projection?.firstNegative;
+  const negName = neg?.accountId ? accounts.get(neg.accountId)?.name : null;
+  const negMonth = neg ? projection?.months.find((m) => m.month === neg.month) : undefined;
+  const negValue = neg?.accountId ? (negMonth?.accounts[neg.accountId] ?? 0) : (negMonth?.totalCents ?? 0);
   return (
     <Card className="flex flex-col gap-4 p-5">
       <CardTitle aside={<CardLink to="/contas">Contas</CardLink>}>Saldo em contas</CardTitle>
@@ -397,6 +441,42 @@ function BalanceCard({ dash, banks }: { dash: Dashboard; banks: Account[] }) {
         </p>
         <p className="text-xs text-faint">já descontando contas previstas e faturas do mês</p>
       </div>
+      {neg ? (
+        <p className="flex items-start gap-2 rounded-[12px] bg-danger-soft px-3 py-2.5 text-[13px] text-danger">
+          <TriangleAlert className="mt-0.5 size-4 shrink-0" aria-hidden />
+          <span>
+            Em {MONTHS[Number(neg.month.slice(5, 7)) - 1]?.toLowerCase()}{" "}
+            {negName ? `o ${negName} fica` : "suas contas ficam"} negativo
+            {` (${money(negValue)})`}, se nada mudar.
+          </span>
+        </p>
+      ) : null}
+      {ahead.length ? (
+        <div className="flex flex-col gap-2">
+          <p className="text-[13px] text-muted">Próximos meses</p>
+          {ahead.map((m) => (
+            <div key={m.month} className="flex items-center gap-2.5 text-sm">
+              <span className="w-9 shrink-0 text-muted capitalize">
+                {MONTHS_SHORT[Number(m.month.slice(5, 7)) - 1]}
+              </span>
+              <span className="h-2 flex-1 overflow-hidden rounded-full bg-surface-2">
+                <span
+                  className={cn(
+                    "bar-fill block h-full rounded-full",
+                    m.totalCents < 0 ? "bg-danger" : "bg-primary",
+                  )}
+                  style={{ width: `${(Math.abs(m.totalCents) / maxAbs) * 100}%` }}
+                />
+              </span>
+              <span
+                className={cn("num w-24 shrink-0 text-right font-medium", m.totalCents < 0 && "text-danger")}
+              >
+                {whole(m.totalCents)}
+              </span>
+            </div>
+          ))}
+        </div>
+      ) : null}
       <ul className="mt-auto flex flex-col gap-2">
         {banks.slice(0, 3).map((a) => (
           <li key={a.id} className="flex items-center gap-2 text-sm">

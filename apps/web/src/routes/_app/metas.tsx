@@ -153,6 +153,9 @@ function GoalCard({ goal: g, onEdit }: { goal: Goal; onEdit: () => void }) {
         >
           {Math.floor(g.progress * 100)}%
         </span>
+        <Button size="sm" variant="ghost" onClick={onEdit}>
+          Editar
+        </Button>
       </div>
       <div>
         <p className="num text-2xl font-semibold tracking-[-0.025em]">
@@ -391,39 +394,45 @@ function GoalForm({ goal, onDone }: { goal: Goal | null; onDone: () => void }) {
       ) : null}
 
       {goal ? (
-        <div className="flex flex-col gap-2 rounded-[14px] bg-surface-2 p-3.5 text-sm">
-          {confirm ? (
-            <>
-              <b>Excluir a meta "{goal.name}" e todos os movimentos?</b>
-              <div className="flex gap-2">
-                <Button size="sm" variant="danger" loading={remove.isPending} onClick={() => remove.mutate()}>
-                  Excluir
-                </Button>
-                <Button size="sm" variant="ghost" onClick={() => setConfirm(false)}>
-                  Cancelar
-                </Button>
-              </div>
-            </>
-          ) : (
-            <div className="flex flex-wrap gap-2">
-              <Button size="sm" loading={archive.isPending} onClick={() => archive.mutate()}>
-                {goal.archived ? "Reativar" : "Arquivar"}
-              </Button>
-              <Button size="sm" variant="danger" onClick={() => setConfirm(true)}>
-                Excluir
-              </Button>
-            </div>
-          )}
-        </div>
+        <button
+          type="button"
+          onClick={() => archive.mutate()}
+          disabled={archive.isPending}
+          className="self-start text-sm font-medium text-muted hover:text-fg hover:underline"
+        >
+          {goal.archived ? "Reativar meta" : "Arquivar meta (some da lista, mantém o histórico)"}
+        </button>
       ) : null}
 
-      <div className="sticky -bottom-5 -mx-5 -mb-5 mt-auto flex justify-end gap-2.5 border-t border-line bg-surface px-5 pt-3.5 pb-[calc(14px+env(safe-area-inset-bottom))]">
-        <Button variant="ghost" onClick={onDone}>
-          Cancelar
-        </Button>
-        <Button type="submit" variant="primary" loading={save.isPending}>
-          {goal ? "Salvar" : "Criar meta"}
-        </Button>
+      <div className="sticky -bottom-5 -mx-5 -mb-5 mt-auto flex flex-wrap items-center justify-end gap-2.5 border-t border-line bg-surface px-5 pt-3.5 pb-[calc(14px+env(safe-area-inset-bottom))]">
+        {goal && confirm ? (
+          <>
+            <div className="mr-auto min-w-0 text-sm">
+              <b className="block">Excluir esta meta?</b>
+              <span className="text-muted">Os movimentos dela também somem.</span>
+            </div>
+            <Button variant="ghost" onClick={() => setConfirm(false)}>
+              Voltar
+            </Button>
+            <Button variant="danger" loading={remove.isPending} onClick={() => remove.mutate()}>
+              Excluir
+            </Button>
+          </>
+        ) : (
+          <>
+            {goal ? (
+              <Button variant="danger" className="mr-auto" onClick={() => setConfirm(true)}>
+                <Trash2 className="size-4" aria-hidden /> Excluir
+              </Button>
+            ) : null}
+            <Button variant="ghost" onClick={onDone}>
+              Cancelar
+            </Button>
+            <Button type="submit" variant="primary" loading={save.isPending}>
+              {goal ? "Salvar" : "Criar meta"}
+            </Button>
+          </>
+        )}
       </div>
     </form>
   );

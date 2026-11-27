@@ -147,6 +147,8 @@ export const createAccountSchema = z.discriminatedUnion("kind", [
       color: color.default("#3a4644"),
       institution: z.enum(INSTITUTION_SLUGS).nullable().optional(),
       cardBrand: z.enum(CARD_BRAND_SLUGS).nullable().optional(),
+      /** Conta de onde sai o pagamento da fatura. */
+      payFromAccountId: z.string().min(1).nullable().optional(),
     })
     .strict(),
 ]);
@@ -163,6 +165,7 @@ export const updateAccountSchema = z
     closingDay: day.optional(),
     dueDay: day.optional(),
     cardBrand: z.enum(CARD_BRAND_SLUGS).nullable().optional(),
+    payFromAccountId: z.string().min(1).nullable().optional(),
   })
   .strict();
 export type UpdateAccount = z.infer<typeof updateAccountSchema>;
@@ -178,6 +181,8 @@ export type Account = {
   institution: string | null;
   /** Só em cartão. */
   cardBrand: CardBrand | null;
+  /** Só em cartão: conta que paga a fatura (a projeção desconta dela). */
+  payFromAccountId: string | null;
   initialBalanceCents: number;
   /**
    * Derivado: saldo inicial + lançamentos realizados.

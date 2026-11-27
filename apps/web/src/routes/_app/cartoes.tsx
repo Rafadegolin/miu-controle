@@ -1,8 +1,8 @@
 import { addYearMonth } from "@miu/core";
 import type { Account } from "@miu/shared";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { Check, ChevronLeft, ChevronRight, Plus } from "lucide-react";
+import { Check, ChevronLeft, ChevronRight, Link2, Plus } from "lucide-react";
 import { useState } from "react";
 import { AccountSheet } from "@/components/account-form";
 import { IconTile } from "@/components/category-icon";
@@ -10,10 +10,18 @@ import { CardBrandMark, InstitutionLogo } from "@/components/institution-logo";
 import { useQuickAdd } from "@/components/quick-add";
 import { CardsSkeleton } from "@/components/skeletons";
 import { StatusPill } from "@/components/status-pill";
+import { toast } from "@/components/toast";
 import { byId, TransactionRow } from "@/components/transaction-row";
 import { Button, Card } from "@/components/ui";
 import { cn } from "@/lib/cn";
-import { accountsQuery, cardOverviewQuery, categoriesQuery, statementQuery } from "@/lib/finance";
+import {
+  accountsQuery,
+  cardOverviewQuery,
+  categoriesQuery,
+  invalidateMoney,
+  statementQuery,
+  updateAccount,
+} from "@/lib/finance";
 import { dayShort, MONTHS, money, monthShort } from "@/lib/format";
 import { awaitData } from "@/lib/loaders";
 
@@ -126,11 +134,25 @@ function CardView({
   const s = statement.data;
   const upMax = Math.max(1, ...(o?.upcoming.map((u) => u.totalCents) ?? [1]));
 
+  // Conta que paga a fatura: a ligada ao cartão; sem ligação, sugere a do mesmo banco.
+  const payer = banks.find((b) => b.id === card.payFromAccountId);
+  const suggestion =
+    banks.find((b) => card.institution && b.institution === card.institution) ??
+    (banks.length === 1 ? banks[0] : undefined);
+  const queryClient = useQueryClient();
+  const link = useMutation({
+    mutationFn: (accountId: string) => updateAccount(card.id, { payFromAccountId: accountId }),
+    onSuccess: async (_, accountId) => {
+      await invalidateMoney(queryClient);
+      toast(`Fatura ligada a ${banks.find((b) => b.id === accountId)?.name ?? "conta"}`);
+    },
+  });
+
   const pay = () =>
     s &&
     openNew({
       kind: "transfer",
-      accountId: banks[0]?.id ?? "",
+      accountId: payer?.id ?? suggestion?.id ?? banks[0]?.id ?? "",
       toAccountId: card.id,
       cents: s.remainingCents,
       statementMonth: s.month,
@@ -139,6 +161,39 @@ function CardView({
 
   return (
     <div className="rise grid gap-4 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
+      {!payer && banks.length ? (
+        <div className="flex flex-wrap items-center gap-3 rounded-[16px] bg-accent-soft px-4 py-3 text-sm text-fg-2 lg:col-span-2">
+          <Link2 className="size-[18px] shrink-0 text-primary" aria-hidden />
+          <span className="min-w-0 flex-1">
+            De qual conta sai o pagamento desta fatura? Ligando, a fatura passa a pesar na previsão do saldo
+            dela.
+          </span>
+          {suggestion ? (
+            <Button
+              size="sm"
+              variant="primary"
+              loading={link.isPending}
+              onClick={() => link.mutate(suggestion.id)}
+            >
+              Ligar a {suggestion.name}
+            </Button>
+          ) : (
+            <select
+              aria-label="Conta que paga a fatura"
+              value=""
+              onChange={(e) => e.target.value && link.mutate(e.target.value)}
+              className="h-9 rounded-control border border-line-strong bg-surface px-2 text-sm"
+            >
+              <option value="">Escolher conta…</option>
+              {banks.map((b) => (
+                <option key={b.id} value={b.id}>
+                  {b.name}
+                </option>
+              ))}
+            </select>
+          )}
+        </div>
+      ) : null}
       <Card>
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-5 py-4">
           <fieldset className="inline-flex h-[38px] items-center rounded-control border border-line-strong bg-surface">
@@ -186,6 +241,7 @@ function CardView({
             {s ? (
               <p className="mt-1 text-[13px] text-muted">
                 Fecha em {dayShort(s.closeDate)} · vence em {dayShort(s.dueDate)}
+                {payer ? ` · paga pelo ${payer.name}` : ""}
                 {s.paidCents > 0 && s.status !== "paid" ? ` · ${money(s.paidCents)} já pago` : ""}
                 {s.plannedCents ? ` · inclui ${money(s.plannedCents)} previsto` : ""}
               </p>

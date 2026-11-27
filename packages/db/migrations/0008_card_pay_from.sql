@@ -1,0 +1,3 @@
+ALTER TABLE "accounts" ADD COLUMN "pay_from_account_id" text;--> statement-breakpoint
+ALTER TABLE "accounts" ADD CONSTRAINT "accounts_pay_from_account_id_accounts_id_fk" FOREIGN KEY ("pay_from_account_id") REFERENCES "public"."accounts"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "accounts" ADD CONSTRAINT "accounts_pay_from_check" CHECK ("accounts"."pay_from_account_id" is null or ("accounts"."kind" = 'credit_card' and "accounts"."pay_from_account_id" <> "accounts"."id"));

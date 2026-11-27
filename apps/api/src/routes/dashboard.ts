@@ -12,6 +12,7 @@ import { Hono } from "hono";
 import { z } from "zod";
 import type { App } from "../env";
 import { cardLedger, summarize } from "../lib/cards";
+import { buildProjection } from "../lib/projection";
 import { accountBalances, userToday } from "../lib/user-data";
 import { valid } from "../lib/validate";
 import { requireUser } from "../middleware/auth";
@@ -174,6 +175,7 @@ export const dashboardRoutes = new Hono<App>()
     }
     upcoming.sort((a, b) => a.date.localeCompare(b.date));
 
+    const projection = await buildProjection(db, userId, 1);
     const sum = (kind: string, status: string) =>
       Number(totals.find((r) => r.kind === kind && r.status === status)?.total ?? 0);
 
@@ -181,7 +183,9 @@ export const dashboardRoutes = new Hono<App>()
       today,
       month,
       bankBalanceCents,
-      projectedEndCents: bankBalanceCents + plannedNet - cardsDueThisMonthCents,
+      // Mesma conta da projeção das contas (lib/projection.ts): os números batem entre as telas.
+      projectedEndCents:
+        projection.months[0]?.totalCents ?? bankBalanceCents + plannedNet - cardsDueThisMonthCents,
       cardsDueThisMonthCents,
       totals: {
         incomePostedCents: sum("income", "posted"),

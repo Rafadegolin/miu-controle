@@ -43,8 +43,30 @@ Estado em 2026-11-27. Produção: https://miu-controle.miu-api.workers.dev (push
   - gráficos que se desenham, barras que crescem, cards em sequência e pílula deslizante no
     segmentado;
   - tokens e keyframes em `styles.css`; movimento reduzido desliga tudo.
+- **F1. Cartão ligado à conta + projeção:**
+  - `accounts.pay_from_account_id` (migration 0008);
+  - "Pagar fatura" sai da conta ligada;
+  - projeção mês a mês por conta (`@miu/core/projection`, `GET /api/insights/projection`), com a Visão geral usando a mesma conta;
+  - "nesse ritmo, o mês fecha em R$ X" (`projectMonthSpend`);
+  - excluir meta no rodapé.
 
 ## Próximos passos
+
+### F2–F4 (plano aprovado em 2026-11-27)
+
+- **F2. Importação inteligente:**
+  - parcelas "PARC 03/10" do extrato do cartão viram parcelamento com as faturas futuras;
+  - "Pagamento de fatura" no extrato da conta vira transferência para o cartão ligado;
+  - marca possíveis duplicatas com lançamentos manuais.
+- **F3. Caixinhas:**
+  - a meta fica ligada a uma conta `savings`;
+  - aportar e resgatar são transferências;
+  - rendimento por % do CDI (API SGS do Banco Central, série 12, via Cron), lançado todo mês;
+  - "ajustar com o saldo do banco".
+- **F4. Futuro:**
+  - tela de patrimônio projetado em 12 a 24 meses, com marcos;
+  - simulador "e se" (cortar categoria, guardar mais, compra parcelada, renda);
+  - passo "Seu futuro" no Resumo do mês.
 
 ### R3. A definir
 

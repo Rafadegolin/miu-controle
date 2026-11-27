@@ -18,6 +18,7 @@ const toDto = (a: Row, balances: Map<string, number>): Account => ({
   color: a.color,
   institution: a.institution,
   cardBrand: (a.cardBrand as Account["cardBrand"]) ?? null,
+  payFromAccountId: a.payFromAccountId,
   initialBalanceCents: a.initialBalanceCents,
   balanceCents: a.initialBalanceCents + (balances.get(a.id) ?? 0),
   archived: a.archivedAt !== null,
@@ -26,6 +27,14 @@ const toDto = (a: Row, balances: Map<string, number>): Account => ({
       ? { creditLimitCents: a.creditLimitCents ?? 0, closingDay: a.closingDay, dueDay: a.dueDay }
       : null,
 });
+
+/** Conta que paga a fatura: do mesmo usuário (senão 404), ativa e que não seja cartão. */
+async function checkPayFrom(db: ReturnType<App["Variables"]["db"]>, userId: string, id: string) {
+  const acc = await ownedAccount(db, userId, id, { activeOnly: true });
+  if (acc.kind === "credit_card") {
+    throw new HttpError(400, "dados_invalidos", "A fatura é paga por uma conta, não por outro cartão.");
+  }
+}
 
 async function withBalance(db: ReturnType<App["Variables"]["db"]>, userId: string, a: Row) {
   return toDto(a, await accountBalances(db, userId));
@@ -50,6 +59,8 @@ export const accountsRoutes = new Hono<App>()
     const body = c.req.valid("json");
     const db = c.var.db();
     const userId = c.var.user.id;
+    if (body.kind === "credit_card" && body.payFromAccountId)
+      await checkPayFrom(db, userId, body.payFromAccountId);
     const [{ n } = { n: 0 }] = await db
       .select({ n: sql<number>`count(*)::int` })
       .from(accounts)
@@ -72,6 +83,7 @@ export const accountsRoutes = new Hono<App>()
       (patch.creditLimitCents !== undefined ||
         patch.closingDay !== undefined ||
         patch.dueDay !== undefined ||
+        (patch.payFromAccountId !== undefined && patch.payFromAccountId !== null) ||
         (patch.cardBrand !== undefined && patch.cardBrand !== null))
     ) {
       throw new HttpError(
@@ -80,6 +92,7 @@ export const accountsRoutes = new Hono<App>()
         "Limite, fechamento, vencimento e bandeira são só de cartão de crédito.",
       );
     }
+    if (card && patch.payFromAccountId) await checkPayFrom(db, userId, patch.payFromAccountId);
     if (card && patch.initialBalanceCents !== undefined) {
       throw new HttpError(
         400,

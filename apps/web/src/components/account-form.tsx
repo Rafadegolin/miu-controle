@@ -11,10 +11,17 @@ import {
   institutionBySlug,
   PALETTE,
 } from "@miu/shared";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { cn } from "@/lib/cn";
-import { archiveAccount, createAccount, deleteAccount, invalidateMoney, updateAccount } from "@/lib/finance";
+import {
+  accountsQuery,
+  archiveAccount,
+  createAccount,
+  deleteAccount,
+  invalidateMoney,
+  updateAccount,
+} from "@/lib/finance";
 import { ApiRequestError } from "@/lib/http";
 import { Chip } from "./controls";
 import { CardBrandMark } from "./institution-logo";
@@ -65,6 +72,17 @@ function AccountForm({
     (institutionBySlug(account?.institution)?.slug as InstitutionSlug | undefined) ?? null,
   );
   const [cardBrand, setCardBrand] = useState<CardBrand | null>(account?.cardBrand ?? null);
+  // Conta que paga a fatura: as contas ativas (não cartões). Padrão = a do mesmo banco, ou a única.
+  const { data: allAccounts = [] } = useQuery(accountsQuery);
+  const payers = allAccounts.filter((a) => !a.card && !a.archived && a.id !== account?.id);
+  const [payFrom, setPayFrom] = useState<string>(() => {
+    if (account) return account.payFromAccountId ?? "";
+    return payers.length === 1 ? (payers[0]?.id ?? "") : "";
+  });
+  const suggestedPayer = (inst: string | null) =>
+    (inst ? payers.find((a) => a.institution === inst)?.id : undefined) ??
+    (payers.length === 1 ? payers[0]?.id : undefined) ??
+    "";
   const brandColor = institutionBySlug(institution)?.color;
   const pickInstitution = (slug: InstitutionSlug | null) => {
     setInstitution(slug);
@@ -72,6 +90,7 @@ function AccountForm({
     if (!inst) return;
     setColor(inst.color);
     if (!name.trim()) setName(inst.name);
+    if (isCard && !payFrom) setPayFrom(suggestedPayer(inst.slug));
   };
   const [balance, setBalance] = useState(
     account && !account.card ? centsText(account.initialBalanceCents) : "",
@@ -106,6 +125,7 @@ function AccountForm({
               color,
               institution,
               cardBrand,
+              payFromAccountId: payFrom || null,
               creditLimitCents,
               closingDay: c,
               dueDay: d,
@@ -116,6 +136,7 @@ function AccountForm({
               color,
               institution,
               cardBrand,
+              payFromAccountId: payFrom || null,
               creditLimitCents,
               closingDay: c,
               dueDay: d,
@@ -209,6 +230,26 @@ function AccountForm({
               ))}
             </div>
           </div>
+          <Field
+            label="Fatura paga pela conta"
+            hint="O valor da fatura sai desta conta na projeção do saldo, no mês do vencimento."
+          >
+            {(p) => (
+              <select
+                {...p}
+                value={payFrom}
+                onChange={(e) => setPayFrom(e.target.value)}
+                className="h-11 w-full rounded-control border border-line-strong bg-surface px-3"
+              >
+                <option value="">Nenhuma (só entra no total)</option>
+                {payers.map((a) => (
+                  <option key={a.id} value={a.id}>
+                    {a.name}
+                  </option>
+                ))}
+              </select>
+            )}
+          </Field>
           <Field label="Limite total">
             {(p) => (
               <Input

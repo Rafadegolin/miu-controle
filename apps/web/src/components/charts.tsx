@@ -85,6 +85,7 @@ export function PaceChart({
   status,
   badge,
   height = 150,
+  projectedEnd,
 }: {
   current: number[];
   previous: number[];
@@ -92,12 +93,14 @@ export function PaceChart({
   status: PaceStatus;
   badge?: ReactNode;
   height?: number;
+  /** Gasto projetado no fim do mês: linha pontilhada de hoje até o último dia. */
+  projectedEnd?: number | undefined;
 }) {
   const id = useId().replace(/:/g, "");
   const W = 320;
   const H = height;
   const pad = 8;
-  const max = Math.max(1, ...current, ...previous) * 1.08;
+  const max = Math.max(1, ...current, ...previous, projectedEnd ?? 0) * 1.08;
   const x = (i: number) => pad + (i / Math.max(1, daysInMonth - 1)) * (W - pad * 2);
   const y = (v: number) => H - pad - (v / max) * (H - pad * 2);
   const path = (arr: number[]) =>
@@ -150,6 +153,19 @@ export function PaceChart({
               className="chart-line"
             />
           </>
+        ) : null}
+        {projectedEnd !== undefined && last >= 0 && last < daysInMonth - 1 ? (
+          <path
+            d={`M${lastX.toFixed(1)} ${lastY.toFixed(1)} L${x(daysInMonth - 1).toFixed(1)} ${y(projectedEnd).toFixed(1)}`}
+            fill="none"
+            stroke={color}
+            strokeWidth="2"
+            strokeDasharray="2 5"
+            strokeLinecap="round"
+            opacity="0.55"
+            className="chart-fade"
+            style={{ animationDelay: "900ms" }}
+          />
         ) : null}
         {last >= 0 ? (
           <circle
