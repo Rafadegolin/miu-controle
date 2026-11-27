@@ -4,11 +4,13 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { CashflowChart } from "@/components/cashflow-chart";
 import { IconTile } from "@/components/category-icon";
 import { MonthSwitcher, Segmented } from "@/components/controls";
+import { CardsSkeleton } from "@/components/skeletons";
 import { byId } from "@/components/transaction-row";
 import { Card } from "@/components/ui";
 import { cn } from "@/lib/cn";
 import { cashflowQuery, categoriesQuery, categoryReportQuery } from "@/lib/finance";
 import { MONTHS, money, monthShort } from "@/lib/format";
+import { awaitData, todayFor } from "@/lib/loaders";
 import { meQuery } from "@/lib/me";
 
 type Search = { mes?: string | undefined; periodo?: 6 | 12 | undefined };
@@ -18,8 +20,19 @@ export const Route = createFileRoute("/_app/relatorios")({
     mes: typeof s.mes === "string" && /^\d{4}-\d{2}$/.test(s.mes) ? s.mes : undefined,
     periodo: s.periodo === 6 || s.periodo === "6" ? 6 : undefined,
   }),
+  loaderDeps: ({ search }) => ({ mes: search.mes, periodo: search.periodo }),
+  loader: ({ context, deps }) => {
+    const qc = context.queryClient;
+    const month = deps.mes ?? todayFor(qc).slice(0, 7);
+    return awaitData([
+      qc.ensureQueryData(cashflowQuery(month, deps.periodo ?? 12)),
+      qc.ensureQueryData(categoryReportQuery(month)),
+      qc.ensureQueryData(categoriesQuery),
+    ]);
+  },
   head: () => ({ meta: [{ title: "Relatórios · Miu Controle" }] }),
   component: Relatorios,
+  pendingComponent: CardsSkeleton,
 });
 
 function Relatorios() {
@@ -104,7 +117,7 @@ function Relatorios() {
         </div>
         <div className="overflow-x-auto">
           {flow.isPending ? (
-            <div className="h-60 animate-pulse" />
+            <div className="h-60 skeleton" />
           ) : (
             <CashflowChart data={data} highlight={month} />
           )}

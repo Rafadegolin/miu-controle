@@ -63,13 +63,11 @@ export function CategoriesManager() {
         onClose={() => setSheet((s) => ({ ...s, open: false }))}
         title={sheet.category ? "Editar categoria" : "Nova categoria"}
       >
-        {sheet.open ? (
-          <CategoryForm
-            category={sheet.category}
-            defaultKind={kind}
-            onDone={() => setSheet((s) => ({ ...s, open: false }))}
-          />
-        ) : null}
+        <CategoryForm
+          category={sheet.category}
+          defaultKind={kind}
+          onDone={() => setSheet((s) => ({ ...s, open: false }))}
+        />
       </Sheet>
     </Card>
   );

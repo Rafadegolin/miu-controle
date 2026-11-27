@@ -17,6 +17,7 @@ import { Donut, PaceChart, paceTone } from "@/components/charts";
 import { InstitutionLogo } from "@/components/institution-logo";
 import { MonthSummary } from "@/components/month-summary";
 import { useQuickAdd } from "@/components/quick-add";
+import { InicioSkeleton } from "@/components/skeletons";
 import { LimitForm, whole } from "@/components/spending-limit";
 import { StatusPill } from "@/components/status-pill";
 import { byId, TransactionRow } from "@/components/transaction-row";
@@ -24,18 +25,22 @@ import { Button, Card, CardTitle, DeltaPill } from "@/components/ui";
 import { cn } from "@/lib/cn";
 import { accountsQuery, budgetsQuery, categoriesQuery, dashboardQuery, paceQuery } from "@/lib/finance";
 import { dayShort, MONTHS_SHORT, money, WEEKDAYS } from "@/lib/format";
+import { awaitData } from "@/lib/loaders";
 import { meQuery } from "@/lib/me";
 
 export const Route = createFileRoute("/_app/inicio")({
   loader: ({ context }) => {
     const qc = context.queryClient;
-    void qc.prefetchQuery(dashboardQuery);
-    void qc.prefetchQuery(paceQuery());
-    void qc.prefetchQuery(accountsQuery);
-    void qc.prefetchQuery(categoriesQuery);
+    return awaitData([
+      qc.ensureQueryData(dashboardQuery),
+      qc.ensureQueryData(paceQuery()),
+      qc.ensureQueryData(accountsQuery),
+      qc.ensureQueryData(categoriesQuery),
+    ]);
   },
   head: () => ({ meta: [{ title: "Visão geral · Miu Controle" }] }),
   component: Inicio,
+  pendingComponent: InicioSkeleton,
 });
 
 function greeting(hour: number) {
@@ -110,17 +115,7 @@ function Inicio() {
     );
   }
 
-  if (!d) {
-    return (
-      <>
-        {subtitle}
-        <div className="grid gap-5 lg:grid-cols-3">
-          <Card className="h-80 animate-pulse" />
-          <Card className="h-80 animate-pulse lg:col-span-2" />
-        </div>
-      </>
-    );
-  }
+  if (!d) return <InicioSkeleton />;
 
   return (
     <>
@@ -165,7 +160,7 @@ function CardLink({
 function SpendingCard({ pace }: { pace?: Pace | undefined }) {
   const [editing, setEditing] = useState(false);
   const [summary, setSummary] = useState(false);
-  if (!pace) return <Card className="h-[360px] animate-pulse" />;
+  if (!pace) return <Card className="h-[372px] skeleton" />;
   const diff = pace.differenceCents;
   const badgeText =
     pace.status === "near" ? "No mesmo ritmo" : `${whole(Math.abs(diff))} ${diff < 0 ? "abaixo" : "acima"}`;

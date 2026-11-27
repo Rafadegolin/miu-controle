@@ -1,17 +1,24 @@
 import { Check } from "lucide-react";
 import { useSyncExternalStore } from "react";
+import { cn } from "@/lib/cn";
 
 type ToastAction = { label: string; onClick: () => void };
-type Toast = { id: number; message: string; action?: ToastAction | undefined };
+type Toast = { id: number; message: string; action?: ToastAction | undefined; leaving?: boolean };
 let toasts: Toast[] = [];
 let seq = 0;
 const listeners = new Set<() => void>();
 const emit = () => {
   for (const l of listeners) l();
 };
+/** Sai deslizando: marca como saindo e remove depois da transição. */
 const dismiss = (id: number) => {
-  toasts = toasts.filter((t) => t.id !== id);
+  if (!toasts.some((t) => t.id === id && !t.leaving)) return;
+  toasts = toasts.map((t) => (t.id === id ? { ...t, leaving: true } : t));
   emit();
+  setTimeout(() => {
+    toasts = toasts.filter((t) => t.id !== id);
+    emit();
+  }, 200);
 };
 
 /** Aviso curto ("Lançamento salvo"). Com `action`, mostra um botão (ex.: Desfazer) e fica mais tempo. */
@@ -38,7 +45,10 @@ export function Toaster() {
       {list.map((t) => (
         <div
           key={t.id}
-          className="flex items-center gap-2 rounded-xl bg-fg py-2.5 pr-2.5 pl-4 text-sm font-medium text-bg shadow-lg"
+          className={cn(
+            "flex items-center gap-2 rounded-xl bg-fg py-2.5 pr-2.5 pl-4 text-sm font-medium text-bg shadow-lg transition duration-200",
+            t.leaving ? "translate-y-2 opacity-0" : "animate-[toast-in_var(--dur)_var(--ease-out)]",
+          )}
         >
           <Check className="size-4 shrink-0" aria-hidden />
           <span className="pr-1.5">{t.message}</span>

@@ -5,6 +5,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { Minus, Plus, Target, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { Sheet } from "@/components/sheet";
+import { CardsSkeleton } from "@/components/skeletons";
 import { toast } from "@/components/toast";
 import { Alert, Button, Card, Field, Input } from "@/components/ui";
 import { cn } from "@/lib/cn";
@@ -20,11 +21,14 @@ import {
 } from "@/lib/finance";
 import { dayShort, money, monthShort } from "@/lib/format";
 import { ApiRequestError } from "@/lib/http";
+import { awaitData } from "@/lib/loaders";
 import { meQuery } from "@/lib/me";
 
 export const Route = createFileRoute("/_app/metas")({
+  loader: ({ context }) => awaitData([context.queryClient.ensureQueryData(goalsQuery)]),
   head: () => ({ meta: [{ title: "Metas · Miu Controle" }] }),
   component: Metas,
+  pendingComponent: CardsSkeleton,
 });
 
 function Metas() {
@@ -45,7 +49,7 @@ function Metas() {
         </Button>
       </div>
 
-      {isPending ? <Card className="h-40 animate-pulse" /> : null}
+      {isPending ? <Card className="h-40 skeleton" /> : null}
       {!isPending && active.length === 0 ? (
         <Card className="flex flex-col items-center gap-3 px-6 py-12 text-center">
           <span className="grid size-11 place-items-center rounded-xl bg-accent-soft text-accent">
@@ -84,9 +88,7 @@ function Metas() {
         onClose={() => setSheet((s) => ({ ...s, open: false }))}
         title={sheet.goal ? "Editar meta" : "Nova meta"}
       >
-        {sheet.open ? (
-          <GoalForm goal={sheet.goal} onDone={() => setSheet((s) => ({ ...s, open: false }))} />
-        ) : null}
+        <GoalForm goal={sheet.goal} onDone={() => setSheet((s) => ({ ...s, open: false }))} />
       </Sheet>
     </>
   );

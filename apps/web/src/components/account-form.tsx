@@ -42,9 +42,7 @@ export function AccountSheet({
       onClose={onClose}
       title={account ? (card ? "Editar cartão" : "Editar conta") : card ? "Novo cartão" : "Nova conta"}
     >
-      {open ? (
-        <AccountForm account={account} defaultKind={defaultKind ?? "checking"} onDone={onClose} />
-      ) : null}
+      <AccountForm account={account} defaultKind={defaultKind ?? "checking"} onDone={onClose} />
     </Sheet>
   );
 }

@@ -36,7 +36,7 @@ export function Button({
       type={type}
       disabled={disabled || loading}
       className={cn(
-        "inline-flex items-center justify-center gap-2 whitespace-nowrap border font-medium transition active:translate-y-px disabled:cursor-not-allowed disabled:opacity-60",
+        "inline-flex items-center justify-center gap-2 whitespace-nowrap border font-medium transition duration-150 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-60",
         variants[variant],
         sizes[size],
         className,

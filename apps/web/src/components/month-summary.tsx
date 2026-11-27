@@ -104,7 +104,7 @@ const STEP_COUNT = 5;
 function Steps({ step }: { step: number }) {
   const dash = useQuery(dashboardQuery);
   const month = dash.data?.month;
-  if (!dash.data || !month) return <div className="h-72 animate-pulse rounded-[16px] bg-surface-2" />;
+  if (!dash.data || !month) return <div className="h-72 skeleton rounded-[16px] bg-surface-2" />;
   switch (step) {
     case 0:
       return <LastMonths month={month} />;
@@ -207,7 +207,7 @@ function Bar({ value, max, color, label }: { value: number; max: number; color: 
 function PaceStep() {
   const q = useQuery(paceQuery());
   const p = q.data;
-  if (!p) return <div className="h-72 animate-pulse rounded-[16px] bg-surface-2" />;
+  if (!p) return <div className="h-72 skeleton rounded-[16px] bg-surface-2" />;
   return (
     <Story
       kicker="Ritmo de gastos"

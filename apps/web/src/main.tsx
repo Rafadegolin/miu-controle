@@ -21,6 +21,11 @@ const router = createRouter({
   context: { queryClient },
   defaultPreload: "intent",
   defaultPreloadStaleTime: 0,
+  // Troca de tela com animação (View Transitions; onde não houver, .page-enter no AppShell).
+  defaultViewTransition: true,
+  // Esperando dados: o skeleton só aparece se demorar, e quando aparece não pisca.
+  defaultPendingMs: 150,
+  defaultPendingMinMs: 350,
 });
 
 declare module "@tanstack/react-router" {

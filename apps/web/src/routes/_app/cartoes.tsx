@@ -8,20 +8,31 @@ import { AccountSheet } from "@/components/account-form";
 import { IconTile } from "@/components/category-icon";
 import { CardBrandMark, InstitutionLogo } from "@/components/institution-logo";
 import { useQuickAdd } from "@/components/quick-add";
+import { CardsSkeleton } from "@/components/skeletons";
 import { StatusPill } from "@/components/status-pill";
 import { byId, TransactionRow } from "@/components/transaction-row";
 import { Button, Card } from "@/components/ui";
 import { cn } from "@/lib/cn";
 import { accountsQuery, cardOverviewQuery, categoriesQuery, statementQuery } from "@/lib/finance";
 import { dayShort, MONTHS, money, monthShort } from "@/lib/format";
+import { awaitData } from "@/lib/loaders";
 
 export const Route = createFileRoute("/_app/cartoes")({
   validateSearch: (s: Record<string, unknown>): { id?: string | undefined; fatura?: string | undefined } => ({
     id: typeof s.id === "string" ? s.id : undefined,
     fatura: typeof s.fatura === "string" && /^\d{4}-\d{2}$/.test(s.fatura) ? s.fatura : undefined,
   }),
+  loaderDeps: ({ search }) => ({ id: search.id }),
+  loader: ({ context, deps }) => {
+    const qc = context.queryClient;
+    return awaitData([
+      qc.ensureQueryData(accountsQuery),
+      ...(deps.id ? [qc.ensureQueryData(cardOverviewQuery(deps.id))] : []),
+    ]);
+  },
   head: () => ({ meta: [{ title: "Cartões · Miu Controle" }] }),
   component: Cartoes,
+  pendingComponent: CardsSkeleton,
 });
 
 function Cartoes() {
@@ -32,7 +43,7 @@ function Cartoes() {
   const cards = accounts.filter((a) => a.card && !a.archived);
   const card = cards.find((c) => c.id === search.id) ?? cards[0];
 
-  if (isPending) return <Card className="h-60 animate-pulse" />;
+  if (isPending) return <Card className="h-60 skeleton" />;
 
   return (
     <>
@@ -188,7 +199,7 @@ function CardView({
         </div>
 
         <div className="border-t border-line">
-          {statement.isPending ? <div className="h-24 animate-pulse" /> : null}
+          {statement.isPending ? <div className="h-24 skeleton" /> : null}
           {s && s.items.length === 0 ? (
             <p className="px-5 py-10 text-center text-muted">Nenhuma compra nesta fatura.</p>
           ) : null}

@@ -8,6 +8,7 @@ import { CategoryBadge, IconTile } from "@/components/category-icon";
 import { MonthSwitcher, Segmented } from "@/components/controls";
 import { InstitutionLogo } from "@/components/institution-logo";
 import { useQuickAdd } from "@/components/quick-add";
+import { ListaSkeleton } from "@/components/skeletons";
 import { toast } from "@/components/toast";
 import { byId, TransactionRow } from "@/components/transaction-row";
 import { Button, Card } from "@/components/ui";
@@ -22,6 +23,7 @@ import {
   transactionsQuery,
 } from "@/lib/finance";
 import { dayLong, dayShort, money, signedMoney } from "@/lib/format";
+import { awaitData, todayFor } from "@/lib/loaders";
 import { meQuery } from "@/lib/me";
 
 type Filters = {
@@ -41,8 +43,28 @@ export const Route = createFileRoute("/_app/lancamentos")({
     tipo: pick(s.tipo, ["income", "expense", "transfer"] as const),
     situacao: pick(s.situacao, ["posted", "planned"] as const),
   }),
+  loaderDeps: ({ search }) => search,
+  loader: ({ context, deps }) => {
+    const qc = context.queryClient;
+    const month = deps.mes ?? todayFor(qc).slice(0, 7);
+    return awaitData([
+      qc.ensureQueryData(summaryQuery(month)),
+      qc.ensureInfiniteQueryData(
+        transactionsQuery({
+          month,
+          accountId: deps.conta,
+          kind: deps.tipo,
+          status: deps.situacao,
+          q: undefined,
+        }),
+      ),
+      qc.ensureQueryData(accountsQuery),
+      qc.ensureQueryData(categoriesQuery),
+    ]);
+  },
   head: () => ({ meta: [{ title: "Lançamentos · Miu Controle" }] }),
   component: Lancamentos,
+  pendingComponent: ListaSkeleton,
 });
 
 const control = "h-[42px] rounded-control border border-line-strong bg-surface px-3";
@@ -182,7 +204,7 @@ function Lancamentos() {
       </div>
 
       {list.isPending ? (
-        <Card className="h-40 animate-pulse" aria-label="Carregando" />
+        <Card className="h-40 skeleton" aria-label="Carregando" />
       ) : items.length === 0 ? (
         <Card className="flex flex-col items-center gap-3 px-6 py-12 text-center text-muted">
           {filtered ? (

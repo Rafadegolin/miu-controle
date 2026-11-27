@@ -5,6 +5,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { Download, FileUp, RotateCcw } from "lucide-react";
 import { type DragEvent, useId, useState } from "react";
 import { Switch } from "@/components/controls";
+import { CardsSkeleton } from "@/components/skeletons";
 import { toast } from "@/components/toast";
 import { byId } from "@/components/transaction-row";
 import { Alert, Button, Card } from "@/components/ui";
@@ -21,11 +22,21 @@ import {
 } from "@/lib/finance";
 import { dayShort, money } from "@/lib/format";
 import { ApiRequestError } from "@/lib/http";
+import { awaitData } from "@/lib/loaders";
 import { meQuery } from "@/lib/me";
 
 export const Route = createFileRoute("/_app/importar")({
+  loader: ({ context }) => {
+    const qc = context.queryClient;
+    return awaitData([
+      qc.ensureQueryData(accountsQuery),
+      qc.ensureQueryData(categoriesQuery),
+      qc.ensureQueryData(importBatchesQuery),
+    ]);
+  },
   head: () => ({ meta: [{ title: "Importar extrato · Miu Controle" }] }),
   component: Importar,
+  pendingComponent: CardsSkeleton,
 });
 
 type Row = PreviewRow & { selected: boolean };

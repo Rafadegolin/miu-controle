@@ -61,7 +61,7 @@ const monthName = (ym: string) => MONTHS[Number(ym.slice(5, 7)) - 1] ?? ym;
 export function TransactionSheet({ open, onClose, editing, defaults }: Props) {
   return (
     <Sheet open={open} onClose={onClose} title={editing ? "Editar lançamento" : "Novo lançamento"}>
-      {open ? <TransactionForm onClose={onClose} editing={editing ?? null} defaults={defaults} /> : null}
+      <TransactionForm onClose={onClose} editing={editing ?? null} defaults={defaults} />
     </Sheet>
   );
 }

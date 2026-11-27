@@ -14,6 +14,7 @@ import { IconTile } from "@/components/category-icon";
 import { Switch } from "@/components/controls";
 import { InstitutionLogo } from "@/components/institution-logo";
 import { RecurringSheet } from "@/components/recurring-sheet";
+import { CardsSkeleton } from "@/components/skeletons";
 import { toast } from "@/components/toast";
 import { byId, TransactionRow } from "@/components/transaction-row";
 import { Button, Card, CardTitle } from "@/components/ui";
@@ -28,11 +29,23 @@ import {
   transactionsQuery,
 } from "@/lib/finance";
 import { dayShort, MONTHS, MONTHS_SHORT, money, monthShort, signedMoney } from "@/lib/format";
+import { awaitData, todayFor } from "@/lib/loaders";
 import { meQuery } from "@/lib/me";
 
 export const Route = createFileRoute("/_app/recorrentes")({
+  loader: ({ context }) => {
+    const qc = context.queryClient;
+    const year = Number(todayFor(qc).slice(0, 4));
+    return awaitData([
+      qc.ensureQueryData(recurringYearQuery(year)),
+      qc.ensureQueryData(recurringQuery),
+      qc.ensureQueryData(accountsQuery),
+      qc.ensureQueryData(categoriesQuery),
+    ]);
+  },
   head: () => ({ meta: [{ title: "Recorrentes · Miu Controle" }] }),
   component: Recorrentes,
+  pendingComponent: CardsSkeleton,
 });
 
 const INSTALLMENTS = "var(--primary)";
@@ -111,7 +124,7 @@ function Recorrentes() {
         {yearData.data ? (
           <YearChart data={yearData.data} selected={selected} onSelect={setSelected} current={month} />
         ) : (
-          <div className="h-[260px] animate-pulse rounded-[14px] bg-surface-2" />
+          <div className="h-[260px] skeleton rounded-[14px] bg-surface-2" />
         )}
       </Card>
 
@@ -140,7 +153,7 @@ function Recorrentes() {
             </div>
           </div>
           <div className="mt-2">
-            {rules.isPending ? <div className="mx-5 h-24 animate-pulse rounded-[14px] bg-surface-2" /> : null}
+            {rules.isPending ? <div className="mx-5 h-24 skeleton rounded-[14px] bg-surface-2" /> : null}
             {rules.data?.length === 0 ? (
               <div className="flex flex-col items-center gap-2 px-6 py-10 text-center text-muted">
                 <p>Cadastre o que se repete: salário, aluguel, internet, assinaturas.</p>
@@ -317,7 +330,7 @@ function InstallmentsCard({
           </p>
         ) : null}
       </div>
-      {!plans ? <div className="mx-5 mt-3 h-24 animate-pulse rounded-[14px] bg-surface-2" /> : null}
+      {!plans ? <div className="mx-5 mt-3 h-24 skeleton rounded-[14px] bg-surface-2" /> : null}
       {plans?.length === 0 ? (
         <p className="px-6 py-10 text-center text-sm text-muted">
           Nenhuma compra parcelada em andamento. Ao lançar uma compra, escolha em quantas vezes.

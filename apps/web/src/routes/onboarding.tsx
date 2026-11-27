@@ -86,7 +86,7 @@ function Onboarding() {
   }
 
   return (
-    <main className="mx-auto flex min-h-dvh max-w-[560px] flex-col gap-6 px-4 py-10">
+    <main className="mx-auto flex min-h-dvh max-w-[560px] flex-col gap-6 px-4 pt-[calc(40px+env(safe-area-inset-top))] pb-10">
       <span className="flex items-center gap-2.5 font-semibold tracking-tight">
         <Logo /> Miu Controle
       </span>

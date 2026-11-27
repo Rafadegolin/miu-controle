@@ -16,7 +16,7 @@ export function AuthLayout({
 }) {
   return (
     <div className="grid min-h-dvh bg-surface lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)]">
-      <div className="flex flex-col px-5 py-7 sm:px-10">
+      <div className="flex flex-col px-5 pt-[calc(28px+env(safe-area-inset-top))] pb-7 sm:px-10">
         <Link to="/" className="self-start" aria-label="Miu Controle">
           <Wordmark />
         </Link>

@@ -6,14 +6,18 @@ import { useState } from "react";
 import { AccountSheet } from "@/components/account-form";
 import { CardBrandMark, InstitutionLogo } from "@/components/institution-logo";
 import { useQuickAdd } from "@/components/quick-add";
+import { CardsSkeleton } from "@/components/skeletons";
 import { Button, Card } from "@/components/ui";
 import { cn } from "@/lib/cn";
 import { accountsQuery } from "@/lib/finance";
 import { money } from "@/lib/format";
+import { awaitData } from "@/lib/loaders";
 
 export const Route = createFileRoute("/_app/contas")({
+  loader: ({ context }) => awaitData([context.queryClient.ensureQueryData(accountsQuery)]),
   head: () => ({ meta: [{ title: "Contas · Miu Controle" }] }),
   component: Contas,
+  pendingComponent: CardsSkeleton,
 });
 
 function Contas() {
@@ -62,7 +66,7 @@ function Contas() {
         </div>
       </div>
 
-      {isPending ? <Card className="h-32 animate-pulse" /> : null}
+      {isPending ? <Card className="h-32 skeleton" /> : null}
       {!isPending && banks.length === 0 ? (
         <Card className="flex flex-col items-center gap-3 px-6 py-12 text-center">
           <h3 className="text-lg font-semibold">Comece pela sua conta principal</h3>

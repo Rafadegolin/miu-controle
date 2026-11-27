@@ -31,7 +31,7 @@ export function RecurringSheet({
 }) {
   return (
     <Sheet open={open} onClose={onClose} title={rule ? "Editar recorrência" : "Nova recorrência"}>
-      {open ? <RecurringForm rule={rule} onClose={onClose} /> : null}
+      <RecurringForm rule={rule} onClose={onClose} />
     </Sheet>
   );
 }

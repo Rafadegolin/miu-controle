@@ -7,20 +7,29 @@ import { useState } from "react";
 import { BudgetBar, BudgetPill } from "@/components/budget";
 import { IconTile } from "@/components/category-icon";
 import { MonthSwitcher } from "@/components/controls";
+import { CardsSkeleton } from "@/components/skeletons";
 import { toast } from "@/components/toast";
 import { byId } from "@/components/transaction-row";
 import { Alert, Button, Card } from "@/components/ui";
 import { budgetsQuery, categoriesQuery, setBudget } from "@/lib/finance";
 import { money, monthLabel } from "@/lib/format";
 import { ApiRequestError } from "@/lib/http";
+import { awaitData, todayFor } from "@/lib/loaders";
 import { meQuery } from "@/lib/me";
 
 export const Route = createFileRoute("/_app/orcamentos")({
   validateSearch: (s: Record<string, unknown>): { mes?: string | undefined } => ({
     mes: typeof s.mes === "string" && /^\d{4}-\d{2}$/.test(s.mes) ? s.mes : undefined,
   }),
+  loaderDeps: ({ search }) => ({ mes: search.mes }),
+  loader: ({ context, deps }) => {
+    const qc = context.queryClient;
+    const month = deps.mes ?? todayFor(qc).slice(0, 7);
+    return awaitData([qc.ensureQueryData(budgetsQuery(month)), qc.ensureQueryData(categoriesQuery)]);
+  },
   head: () => ({ meta: [{ title: "Orçamentos · Miu Controle" }] }),
   component: Orcamentos,
+  pendingComponent: CardsSkeleton,
 });
 
 function Orcamentos() {
@@ -83,7 +92,7 @@ function Orcamentos() {
           ) : null}
         </div>
         <div className="mt-3">
-          {budgets.isPending ? <div className="h-24 animate-pulse" /> : null}
+          {budgets.isPending ? <div className="h-24 skeleton" /> : null}
           {b && b.lines.length === 0 ? (
             <p className="px-5 pb-6 text-muted">
               Nenhum orçamento em {monthLabel(month)}. Escolha abaixo as categorias que você quer controlar: o

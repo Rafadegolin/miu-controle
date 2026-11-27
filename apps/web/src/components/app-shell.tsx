@@ -116,8 +116,12 @@ function useCurrent() {
   return NAV.find((n) => pathname.startsWith(n.to));
 }
 
+/** Navegador com View Transitions (Chrome, Safari 18+). Sem elas, a página entra com .page-enter. */
+const hasViewTransitions = typeof document !== "undefined" && "startViewTransition" in document;
+
 function Shell({ me, children }: { me: Me; children: ReactNode }) {
   const current = useCurrent();
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
   const { openNew } = useQuickAdd();
   const [moreOpen, setMoreOpen] = useState(false);
   const mobile = NAV.filter((n) => n.mobile);
@@ -162,7 +166,8 @@ function Shell({ me, children }: { me: Me; children: ReactNode }) {
 
       <div className="min-w-0">
         {/* Topo (celular): marca e atalhos */}
-        <header className="sticky top-0 z-20 border-b border-line bg-bg/85 backdrop-blur-md lg:hidden">
+        {/* pt = altura da barra de status do iPhone (app instalado usa black-translucent + viewport-fit=cover) */}
+        <header className="sticky top-0 z-20 border-b border-line bg-bg/85 pt-[env(safe-area-inset-top)] backdrop-blur-md lg:hidden">
           <div className="flex h-14 items-center gap-1 px-4">
             <Link to="/inicio" aria-label="Visão geral" className="mr-auto">
               <Wordmark />
@@ -175,7 +180,13 @@ function Shell({ me, children }: { me: Me; children: ReactNode }) {
           </div>
         </header>
 
-        <main className="mx-auto flex max-w-[1240px] flex-col gap-6 px-4 pt-5 pb-28 sm:px-6 lg:px-10 lg:pt-9 lg:pb-14">
+        <main
+          key={hasViewTransitions ? undefined : pathname}
+          className={cn(
+            "page-transition mx-auto flex max-w-[1240px] flex-col gap-6 px-4 pt-5 pb-28 sm:px-6 lg:px-10 lg:pt-9 lg:pb-14",
+            !hasViewTransitions && "page-enter",
+          )}
+        >
           {/* Título da página + ação principal */}
           <div className="flex items-center gap-3">
             <h1 className="text-[26px] font-semibold tracking-[-0.03em] lg:text-[30px]">{current?.label}</h1>
@@ -210,7 +221,7 @@ function Shell({ me, children }: { me: Me; children: ReactNode }) {
           aria-label="Novo lançamento"
           className="flex h-[52px] items-center justify-center"
         >
-          <span className="-mt-4 grid size-[52px] place-items-center rounded-[18px] bg-primary text-on-primary shadow-pop">
+          <span className="-mt-4 grid size-[52px] place-items-center rounded-[18px] bg-primary text-on-primary shadow-pop transition-transform duration-150 active:scale-90">
             <Plus className="size-6" strokeWidth={2.2} aria-hidden />
           </span>
         </button>
@@ -222,7 +233,7 @@ function Shell({ me, children }: { me: Me; children: ReactNode }) {
           onClick={() => setMoreOpen(true)}
           aria-current={moreActive ? "page" : undefined}
           className={cn(
-            "flex h-[52px] flex-col items-center justify-center gap-0.5 text-[11px] font-medium",
+            "flex h-[52px] flex-col items-center justify-center gap-0.5 text-[11px] font-medium transition-[color,transform] duration-200 active:scale-90",
             moreActive ? "text-primary" : "text-muted",
           )}
         >
@@ -250,7 +261,7 @@ function MobileLink({ item, active }: { item: NavItem; active: boolean }) {
       to={item.to}
       aria-current={active ? "page" : undefined}
       className={cn(
-        "flex h-[52px] flex-col items-center justify-center gap-0.5 text-[11px] font-medium",
+        "flex h-[52px] flex-col items-center justify-center gap-0.5 text-[11px] font-medium transition-[color,transform] duration-200 active:scale-90",
         active ? "text-primary" : "text-muted",
       )}
     >
