@@ -102,7 +102,7 @@ export const pushRoutes = new Hono<App>()
       throw new HttpError(
         502,
         "push_recusado",
-        "O serviço de notificações do aparelho recusou o envio. Desative e ative de novo neste aparelho.",
+        `O serviço de notificações do aparelho recusou o envio. Desative e ative de novo neste aparelho. (Detalhe técnico: ${r.reasons.join("; ") || "sem resposta"})`,
       );
     }
     const body: PushTestResult = { sent: r.sent, failed: r.failed };

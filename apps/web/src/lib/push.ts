@@ -113,8 +113,8 @@ export const pushSubscriptionQuery = queryOptions({
  * Ativa as notificações neste aparelho. Precisa ser chamado direto do toque no botão: o pedido de
  * permissão é a primeira coisa (o Safari exige o gesto do usuário).
  */
-export async function enablePush(publicKey: string): Promise<string> {
-  const result = await Notification.requestPermission();
+export async function enablePush(publicKey: string, asked: Promise<NotificationPermission>): Promise<string> {
+  const result = await asked;
   if (result !== "granted") throw new Error(result === "denied" ? "negado" : "ignorado");
   const reg = await registration();
   if (!reg) throw new Error("sem_service_worker");

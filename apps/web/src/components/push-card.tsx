@@ -41,7 +41,7 @@ export function PushCard() {
     ]);
 
   const enable = useMutation({
-    mutationFn: () => enablePush(config.data?.publicKey ?? ""),
+    mutationFn: (asked: Promise<NotificationPermission>) => enablePush(config.data?.publicKey ?? "", asked),
     onSuccess: async () => {
       setError(null);
       await refresh();
@@ -141,7 +141,8 @@ export function PushCard() {
         className="self-start"
         loading={enable.isPending || sub.isPending}
         disabled={!config.data?.publicKey}
-        onClick={() => enable.mutate()}
+        // O pedido de permissão sai aqui, direto no toque: o iOS só mostra o aviso do sistema dentro do gesto.
+        onClick={() => enable.mutate(Notification.requestPermission())}
       >
         <BellRing className="size-4" aria-hidden /> Ativar notificações neste aparelho
       </Button>

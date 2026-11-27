@@ -24,7 +24,7 @@ export async function sendToUser(
   userId: string,
   message: PushMessage,
   onlyEndpoint?: string,
-): Promise<{ sent: number; failed: number; devices: number }> {
+): Promise<{ sent: number; failed: number; devices: number; reasons: string[] }> {
   const subs = await db
     .select()
     .from(pushSubscriptions)
@@ -44,5 +44,6 @@ export async function sendToUser(
       .set({ lastSuccessAt: new Date() })
       .where(inArray(pushSubscriptions.id, ok));
   }
-  return { sent: ok.length, failed: results.length - ok.length, devices: subs.length };
+  const reasons = results.filter((x) => !x.r.ok).map((x) => `${x.r.status} ${x.r.reason ?? ""}`.trim());
+  return { sent: ok.length, failed: results.length - ok.length, devices: subs.length, reasons };
 }

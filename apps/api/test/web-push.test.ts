@@ -101,6 +101,6 @@ describe("web push", () => {
     expect(payload).toEqual({ title: "Teste", body: "Funcionou", url: "/inicio", tag: "teste" });
 
     status = 410;
-    expect(await send(sub, { title: "x", body: "y" })).toEqual({ ok: false, status: 410, gone: true });
+    expect(await send(sub, { title: "x", body: "y" })).toMatchObject({ ok: false, status: 410, gone: true });
   });
 });

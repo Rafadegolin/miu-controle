@@ -28,6 +28,8 @@ export type PushResult = {
   status: number;
   /** 404/410: o aparelho cancelou a inscrição. Apagar do banco. */
   gone: boolean;
+  /** Resposta do serviço de push quando recusa (ex.: Apple {"reason":"BadJwtToken"}). Sem segredos. */
+  reason?: string;
 };
 
 export type PushSender = (sub: PushSubscriptionKeys, message: PushMessage) => Promise<PushResult>;
@@ -152,7 +154,11 @@ export function webPushSender(
       // Topic: substitui notificação ainda não entregue com o mesmo assunto (até 32 caracteres seguros).
       if (message.tag) headers.Topic = message.tag.replace(/[^A-Za-z0-9_-]/g, "").slice(0, 32);
       const res = await fetcher(sub.endpoint, { method: "POST", headers, body });
-      return { ok: res.ok, status: res.status, gone: res.status === 404 || res.status === 410 };
+      const gone = res.status === 404 || res.status === 410;
+      if (res.ok) return { ok: true, status: res.status, gone };
+      const reason = (await res.text().catch(() => "")).slice(0, 300);
+      console.error("push_recusado", { host: new URL(sub.endpoint).host, status: res.status, reason });
+      return { ok: false, status: res.status, gone, reason };
     } catch (err) {
       console.error("push_falhou", err);
       return { ok: false, status: 0, gone: false };
