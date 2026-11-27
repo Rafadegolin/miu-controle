@@ -10,6 +10,7 @@ import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tansta
 import { createFileRoute } from "@tanstack/react-router";
 import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import { useState } from "react";
+import { AnimatedNumber } from "@/components/animated-number";
 import { IconTile } from "@/components/category-icon";
 import { Switch } from "@/components/controls";
 import { InstitutionLogo } from "@/components/institution-logo";
@@ -128,7 +129,7 @@ function Recorrentes() {
         )}
       </Card>
 
-      <div className="grid gap-5 lg:grid-cols-2">
+      <div className="rise grid gap-5 lg:grid-cols-2">
         <InstallmentsCard plans={yearData.data?.installments} catMap={catMap} accMap={accMap} />
 
         <Card className="flex flex-col py-5">
@@ -231,7 +232,7 @@ function YearChart({
     <div className="flex flex-col gap-6 lg:flex-row">
       <div className="min-w-0 flex-1">
         <div className="flex h-[220px] items-end gap-1.5 sm:gap-2.5">
-          {data.months.map((m) => {
+          {data.months.map((m, i) => {
             const sum = m.installmentsCents + m.fixedCents;
             const isSel = m.month === sel.month;
             const past = m.month < current;
@@ -246,11 +247,14 @@ function YearChart({
               >
                 <span
                   className={cn(
-                    "flex w-full max-w-[38px] flex-col justify-end overflow-hidden rounded-[8px] transition-opacity",
+                    "chart-bar flex w-full max-w-[38px] flex-col justify-end overflow-hidden rounded-[8px] transition-opacity",
                     !isSel && "opacity-45 group-hover:opacity-80",
                     past && !isSel && "opacity-25",
                   )}
-                  style={{ height: `${Math.max(sum > 0 ? 4 : 0, (sum / max) * 100)}%` }}
+                  style={{
+                    height: `${Math.max(sum > 0 ? 4 : 0, (sum / max) * 100)}%`,
+                    animationDelay: `${i * 35}ms`,
+                  }}
                 >
                   <span
                     className="block w-full"
@@ -282,7 +286,9 @@ function YearChart({
       <div className="flex flex-col gap-4 rounded-[16px] bg-surface-2 p-4 lg:w-[260px]">
         <div>
           <p className="text-[13px] text-muted">{MONTHS[selMonth - 1]}</p>
-          <p className="num-display text-[30px]">{money(sel.installmentsCents + sel.fixedCents)}</p>
+          <p className="num-display text-[30px]">
+            <AnimatedNumber value={sel.installmentsCents + sel.fixedCents} />
+          </p>
           <p className="text-[13px] text-muted">já comprometidos</p>
         </div>
         <div className="flex flex-col gap-2.5 text-sm">
@@ -356,7 +362,10 @@ function InstallmentsCard({
                 </div>
                 <div className="mt-1.5 flex items-center gap-2.5">
                   <span className="h-1.5 flex-1 overflow-hidden rounded-full bg-surface-2">
-                    <span className="block h-full rounded-full bg-primary" style={{ width: `${pct}%` }} />
+                    <span
+                      className="bar-fill block h-full rounded-full bg-primary"
+                      style={{ width: `${pct}%` }}
+                    />
                   </span>
                   <span className="num shrink-0 text-xs text-muted">
                     {p.paidCount}/{p.total}

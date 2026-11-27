@@ -306,7 +306,7 @@ function Importar() {
 
   const today = todayIn(me?.settings.timezone);
   return (
-    <div className="grid gap-4 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
+    <div className="rise grid gap-4 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
       <Card className="flex flex-col gap-5 p-5">
         <div>
           <h3 className="text-[17px] font-semibold">Importar extrato</h3>

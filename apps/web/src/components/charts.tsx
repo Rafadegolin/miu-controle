@@ -36,7 +36,7 @@ export function Donut({
         {total > 0
           ? segments
               .filter((s) => s.value > 0)
-              .map((s) => {
+              .map((s, i) => {
                 const len = (s.value / total) * c;
                 const dash = Math.max(0, len - gap);
                 const el = (
@@ -50,6 +50,8 @@ export function Donut({
                     strokeWidth={thickness}
                     strokeDasharray={`${dash} ${c - dash}`}
                     strokeDashoffset={-offset}
+                    className="chart-donut"
+                    style={{ "--circ": c, animationDelay: `${i * 90}ms` } as React.CSSProperties}
                   >
                     <title>{s.label}</title>
                   </circle>
@@ -126,6 +128,7 @@ export function PaceChart({
             stroke="var(--line-strong)"
             strokeWidth="1.6"
             strokeDasharray="4 5"
+            className="chart-fade"
           />
         ) : null}
         {current.length > 1 ? (
@@ -133,6 +136,8 @@ export function PaceChart({
             <path
               d={`${path(current)} L${lastX.toFixed(1)} ${H - pad} L${x(0).toFixed(1)} ${H - pad} Z`}
               fill={`url(#area-${id})`}
+              className="chart-fade"
+              style={{ animationDelay: "550ms" }}
             />
             <path
               d={path(current)}
@@ -141,16 +146,26 @@ export function PaceChart({
               strokeWidth="3"
               strokeLinejoin="round"
               strokeLinecap="round"
+              pathLength={1}
+              className="chart-line"
             />
           </>
         ) : null}
         {last >= 0 ? (
-          <circle cx={lastX} cy={lastY} r="5.5" fill="var(--surface)" stroke={color} strokeWidth="2.5" />
+          <circle
+            cx={lastX}
+            cy={lastY}
+            r="5.5"
+            fill="var(--surface)"
+            stroke={color}
+            strokeWidth="2.5"
+            className="chart-dot"
+          />
         ) : null}
       </svg>
       {badge && last >= 0 ? (
         <div
-          className="pointer-events-none absolute -translate-x-1/2 translate-y-3"
+          className="chart-badge pointer-events-none absolute -translate-x-1/2 translate-y-3"
           style={{ left: `${Math.min(80, Math.max(20, (lastX / W) * 100))}%`, top: `${(lastY / H) * 100}%` }}
         >
           {badge}

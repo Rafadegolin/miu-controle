@@ -1,6 +1,7 @@
 import { todayIn } from "@miu/core";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { AnimatedNumber } from "@/components/animated-number";
 import { CashflowChart } from "@/components/cashflow-chart";
 import { IconTile } from "@/components/category-icon";
 import { MonthSwitcher, Segmented } from "@/components/controls";
@@ -76,14 +77,18 @@ function Relatorios() {
         />
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="rise grid gap-4 sm:grid-cols-3">
         <Card className="p-5">
           <p className="text-[13px] font-medium text-muted">Entrou em {months} meses</p>
-          <p className="num-display mt-1 text-[28px] text-accent">{money(totalIn)}</p>
+          <p className="num-display mt-1 text-[28px] text-accent">
+            <AnimatedNumber value={totalIn} />
+          </p>
         </Card>
         <Card className="p-5">
           <p className="text-[13px] font-medium text-muted">Saiu em {months} meses</p>
-          <p className="num-display mt-1 text-[28px]">{money(totalOut)}</p>
+          <p className="num-display mt-1 text-[28px]">
+            <AnimatedNumber value={totalOut} />
+          </p>
         </Card>
         <Card className="p-5">
           <p className="text-[13px] font-medium text-muted">Guardou, em média</p>
@@ -124,7 +129,7 @@ function Relatorios() {
         </div>
       </Card>
 
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className="rise grid gap-4 lg:grid-cols-2">
         <Card>
           <div className="px-5 pt-4">
             <h3 className="text-[15px] font-medium text-muted">Mês a mês</h3>

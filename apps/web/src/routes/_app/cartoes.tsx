@@ -138,7 +138,7 @@ function CardView({
     });
 
   return (
-    <div className="grid gap-4 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
+    <div className="rise grid gap-4 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
       <Card>
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-5 py-4">
           <fieldset className="inline-flex h-[38px] items-center rounded-control border border-line-strong bg-surface">
@@ -255,7 +255,7 @@ function CardView({
                 <span className="w-[52px] text-[13px] text-muted">{monthShort(u.month)}</span>
                 <span className="h-2 flex-1 overflow-hidden rounded-full bg-surface-2">
                   <span
-                    className="block h-full rounded-full"
+                    className="bar-fill block h-full rounded-full"
                     style={{ width: `${(u.totalCents / upMax) * 100}%`, background: card.color }}
                   />
                 </span>

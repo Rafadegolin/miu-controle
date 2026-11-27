@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { Minus, Plus, Target, Trash2 } from "lucide-react";
 import { useState } from "react";
+import { AnimatedNumber } from "@/components/animated-number";
 import { Sheet } from "@/components/sheet";
 import { CardsSkeleton } from "@/components/skeletons";
 import { toast } from "@/components/toast";
@@ -66,7 +67,7 @@ function Metas() {
         </Card>
       ) : null}
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="rise grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {active.map((g) => (
           <GoalCard key={g.id} goal={g} onEdit={() => setSheet({ open: true, goal: g })} />
         ))}
@@ -154,11 +155,16 @@ function GoalCard({ goal: g, onEdit }: { goal: Goal; onEdit: () => void }) {
         </span>
       </div>
       <div>
-        <p className="num text-2xl font-semibold tracking-[-0.025em]">{money(g.savedCents)}</p>
+        <p className="num text-2xl font-semibold tracking-[-0.025em]">
+          <AnimatedNumber value={g.savedCents} />
+        </p>
         <p className="text-[13.5px] text-muted">de {money(g.targetCents)}</p>
       </div>
       <div className="h-2 overflow-hidden rounded-full bg-surface-2">
-        <div className="h-full rounded-full" style={{ width: `${pct * 100}%`, background: g.color }} />
+        <div
+          className="bar-fill h-full rounded-full"
+          style={{ width: `${pct * 100}%`, background: g.color }}
+        />
       </div>
       <p className="rounded-[14px] bg-surface-2 px-3 py-2.5 text-[13.5px] text-fg-2">
         {pace}

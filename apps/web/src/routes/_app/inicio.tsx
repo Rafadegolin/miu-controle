@@ -12,6 +12,7 @@ import {
   Wallet,
 } from "lucide-react";
 import { type ReactNode, useState } from "react";
+import { AnimatedNumber } from "@/components/animated-number";
 import { IconTile } from "@/components/category-icon";
 import { Donut, PaceChart, paceTone } from "@/components/charts";
 import { InstitutionLogo } from "@/components/institution-logo";
@@ -120,7 +121,7 @@ function Inicio() {
   return (
     <>
       {subtitle}
-      <div className="grid gap-5 lg:grid-cols-3">
+      <div className="rise grid gap-5 lg:grid-cols-3">
         <SpendingCard pace={pace.data} />
         <DistributionCard dash={d} catMap={catMap} budgetLines={budgets.data?.lines ?? []} />
 
@@ -170,7 +171,7 @@ function SpendingCard({ pace }: { pace?: Pace | undefined }) {
       <div className="flex flex-1 flex-col gap-4 rounded-[17px] bg-surface p-5">
         <CardTitle>Gastos no mês</CardTitle>
         <p className="num-display text-[38px]">
-          {money(pace.spentCents)}
+          <AnimatedNumber value={pace.spentCents} />
           {pace.limitCents ? (
             <span className="ml-1.5 text-lg font-normal tracking-normal text-muted">
               / {whole(pace.limitCents)}
@@ -279,7 +280,9 @@ function DistributionCard({
           <Donut segments={segments} size={200}>
             <div>
               <p className="text-[13px] text-muted">Gasto total</p>
-              <p className="num-display text-[28px]">{whole(total)}</p>
+              <p className="num-display text-[28px]">
+                <AnimatedNumber value={total} format={whole} />
+              </p>
             </div>
           </Donut>
           <ul className="w-full min-w-0 flex-1 divide-y divide-line">
@@ -329,7 +332,9 @@ function ResultCard({ dash }: { dash: Dashboard }) {
     <Card className="flex flex-col gap-4 p-5">
       <CardTitle>Resultado do mês</CardTitle>
       <div className="flex flex-wrap items-center gap-3">
-        <p className={cn("num-display text-[34px]", result < 0 && "text-danger")}>{money(result)}</p>
+        <p className={cn("num-display text-[34px]", result < 0 && "text-danger")}>
+          <AnimatedNumber value={result} />
+        </p>
         <DeltaPill value={delta} />
       </div>
       <p className="-mt-2 text-sm text-muted">
@@ -383,7 +388,7 @@ function BalanceCard({ dash, banks }: { dash: Dashboard; banks: Account[] }) {
     <Card className="flex flex-col gap-4 p-5">
       <CardTitle aside={<CardLink to="/contas">Contas</CardLink>}>Saldo em contas</CardTitle>
       <p className={cn("num-display text-[34px]", dash.bankBalanceCents < 0 && "text-danger")}>
-        {money(dash.bankBalanceCents)}
+        <AnimatedNumber value={dash.bankBalanceCents} />
       </p>
       <div className="rounded-[14px] bg-surface-2 px-3.5 py-3">
         <p className="text-[13px] text-muted">Previsto para o fim do mês</p>
@@ -421,7 +426,9 @@ function StatementsCard({ dash, accMap }: { dash: Dashboard; accMap: Map<string,
         </div>
       ) : (
         <>
-          <p className="num-display text-[34px]">{money(total)}</p>
+          <p className="num-display text-[34px]">
+            <AnimatedNumber value={total} />
+          </p>
           <p className="-mt-2 text-sm text-muted">
             Saldo após pagar: <b className="num text-fg">{money(dash.bankBalanceCents - total)}</b>
           </p>
@@ -592,7 +599,7 @@ function GoalCard({ dash }: { dash: Dashboard }) {
             <span className="num text-muted">{whole(g.savedCents)}</span>
             <span className="h-2 flex-1 overflow-hidden rounded-full bg-surface-2">
               <span
-                className="block h-full rounded-full"
+                className="bar-fill block h-full rounded-full"
                 style={{
                   width: `${Math.min(100, (g.savedCents / g.targetCents) * 100)}%`,
                   background: g.color,

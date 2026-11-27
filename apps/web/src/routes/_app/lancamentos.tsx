@@ -4,6 +4,7 @@ import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tansta
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { Check, Search as SearchIcon, Tag, Trash2, X } from "lucide-react";
 import { useDeferredValue, useState } from "react";
+import { AnimatedNumber } from "@/components/animated-number";
 import { CategoryBadge, IconTile } from "@/components/category-icon";
 import { MonthSwitcher, Segmented } from "@/components/controls";
 import { InstitutionLogo } from "@/components/institution-logo";
@@ -137,14 +138,18 @@ function Lancamentos() {
         <Stat label="Lançamentos" value={String(count)} sub={filtered ? "com os filtros" : "no mês"} />
         <Stat
           label="Entradas"
-          value={money(income)}
+          value={<AnimatedNumber value={income} />}
           sub={`${money(s?.incomePlannedCents ?? 0)} previsto`}
           tone="pos"
         />
-        <Stat label="Saídas" value={money(expense)} sub={`${money(s?.expensePlannedCents ?? 0)} previsto`} />
+        <Stat
+          label="Saídas"
+          value={<AnimatedNumber value={expense} />}
+          sub={`${money(s?.expensePlannedCents ?? 0)} previsto`}
+        />
         <Stat
           label="Resultado"
-          value={money(income - expense)}
+          value={<AnimatedNumber value={income - expense} />}
           sub="sem transferências"
           tone={income - expense < 0 ? "neg" : undefined}
         />
@@ -592,7 +597,7 @@ function Stat({
   tone,
 }: {
   label: string;
-  value: string;
+  value: React.ReactNode;
   sub: string;
   tone?: "pos" | "neg" | undefined;
 }) {

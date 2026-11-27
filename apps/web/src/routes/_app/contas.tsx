@@ -4,6 +4,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowLeftRight, Plus } from "lucide-react";
 import { useState } from "react";
 import { AccountSheet } from "@/components/account-form";
+import { AnimatedNumber } from "@/components/animated-number";
 import { CardBrandMark, InstitutionLogo } from "@/components/institution-logo";
 import { useQuickAdd } from "@/components/quick-add";
 import { CardsSkeleton } from "@/components/skeletons";
@@ -80,7 +81,7 @@ function Contas() {
       ) : null}
 
       {banks.length ? (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="rise grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {banks.map((a) => (
             <AccountCard key={a.id} account={a} onEdit={() => setSheet({ open: true, account: a })} />
           ))}
@@ -100,7 +101,7 @@ function Contas() {
             as parcelas aparecem mês a mês.
           </Card>
         ) : (
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="rise grid gap-4 sm:grid-cols-2">
             {cards.map((a) => (
               <CardSummary key={a.id} account={a} onEdit={() => setSheet({ open: true, account: a })} />
             ))}
@@ -145,7 +146,7 @@ function AccountCard({ account: a, onEdit }: { account: Account; onEdit: () => v
       <p
         className={cn("num text-2xl font-semibold tracking-[-0.025em]", a.balanceCents < 0 && "text-danger")}
       >
-        {money(a.balanceCents)}
+        <AnimatedNumber value={a.balanceCents} />
       </p>
       <Link
         to="/lancamentos"
@@ -188,7 +189,7 @@ function CardSummary({ account: a, onEdit }: { account: Account; onEdit: () => v
           </span>
         </div>
         <div className="h-2 overflow-hidden rounded-full bg-surface-2">
-          <div className="h-full rounded-full" style={{ width: `${pct}%`, background: a.color }} />
+          <div className="bar-fill h-full rounded-full" style={{ width: `${pct}%`, background: a.color }} />
         </div>
       </div>
       <Link to="/cartoes" search={{ id: a.id }} className="text-sm font-medium text-accent hover:underline">

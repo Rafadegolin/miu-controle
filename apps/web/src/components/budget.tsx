@@ -34,7 +34,7 @@ export function BudgetBar({
   const fill = BAR[status] || color || "var(--accent-fill)";
   return (
     <div className="flex h-2 overflow-hidden rounded-full bg-surface-2">
-      <span className="h-full" style={{ width: w(spent), background: fill }} />
+      <span className="bar-fill h-full" style={{ width: w(spent), background: fill }} />
       <span
         className="h-full"
         style={{

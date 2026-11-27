@@ -79,7 +79,7 @@ export function CashflowChart({ data, highlight }: { data: CashflowMonth[]; high
         ) => {
           const posted = value - planned;
           return (
-            <g>
+            <g className="chart-bar-svg" style={{ animationDelay: `${i * 35}ms` }}>
               <title>{`${label} ${monthShort(d.month)}: ${money(value)}${planned ? ` (${money(planned)} previsto)` : ""}`}</title>
               <rect
                 x={x}

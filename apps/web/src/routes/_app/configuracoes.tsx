@@ -19,7 +19,7 @@ export const Route = createFileRoute("/_app/configuracoes")({
 
 function Configuracoes() {
   return (
-    <div className="grid gap-4 lg:grid-cols-2">
+    <div className="rise grid gap-4 lg:grid-cols-2">
       <Perfil />
       <Senha />
       <Aparencia />

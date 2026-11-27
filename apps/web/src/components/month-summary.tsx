@@ -3,6 +3,7 @@ import type { Category, RecurringRule } from "@miu/shared";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ChevronLeft, ChevronRight, PartyPopper, X } from "lucide-react";
 import { type ReactNode, useEffect, useRef, useState } from "react";
+import { AnimatedNumber } from "@/components/animated-number";
 import { cn } from "@/lib/cn";
 import {
   budgetsQuery,
@@ -193,7 +194,7 @@ function Bar({ value, max, color, label }: { value: number; max: number; color: 
     <div className="flex items-center gap-2" title={`${label}: ${money(value)}`}>
       <span className="h-2.5 flex-1 overflow-hidden rounded-full bg-surface">
         <span
-          className="block h-full rounded-full"
+          className="bar-fill block h-full rounded-full"
           style={{ width: `${(value / max) * 100}%`, background: color }}
         />
       </span>
@@ -377,7 +378,7 @@ function BudgetsStep({ month }: { month: string }) {
                   <span className="mt-1.5 block h-2 overflow-hidden rounded-full bg-surface">
                     <span
                       className={cn(
-                        "block h-full rounded-full",
+                        "bar-fill block h-full rounded-full",
                         l.status === "over" ? "bg-danger" : l.status === "warning" ? "bg-warn" : "bg-primary",
                       )}
                       style={{ width: `${Math.min(100, pct)}%` }}
@@ -420,7 +421,9 @@ function Closing() {
             <PartyPopper className="size-7" aria-hidden />
           </span>
           <p className="text-sm text-muted">Resultado do mês (entradas − saídas)</p>
-          <p className={cn("num-display text-[34px]", result < 0 && "text-danger")}>{money(result)}</p>
+          <p className={cn("num-display text-[34px]", result < 0 && "text-danger")}>
+            <AnimatedNumber value={result} />
+          </p>
           <p className="max-w-[280px] text-sm text-muted">
             Já contando contas previstas, recorrências e as faturas que vencem no mês.
           </p>

@@ -415,3 +415,43 @@ dialog.sheet[data-closing]::backdrop {
     animation-name: sheet-out-right;
   }
 }
+
+/* Gráficos: a linha se desenha, área e tracejado entram em fade, o ponto de hoje "pousa",
+ * as fatias da rosca varrem em sequência, barras crescem e barras de progresso enchem. */
+.chart-line {
+  stroke-dasharray: 1;
+  animation: draw 900ms var(--ease-out) both;
+}
+.chart-fade {
+  animation: fade-in 600ms var(--ease-out) both;
+}
+.chart-dot {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: pop-in 450ms var(--ease-out) 850ms both;
+}
+.chart-badge {
+  animation: page-in var(--dur) var(--ease-out) 950ms both;
+}
+@keyframes donut-in {
+  from {
+    stroke-dasharray: 0 var(--circ);
+  }
+}
+.chart-donut {
+  animation: donut-in 800ms var(--ease-out) both;
+}
+.chart-bar {
+  transform-origin: bottom;
+  animation: grow-y 650ms var(--ease-out) both;
+}
+.bar-fill {
+  transform-origin: left;
+  animation: grow-x 750ms var(--ease-out) both;
+  transition: width 500ms var(--ease-out);
+}
+.chart-bar-svg {
+  transform-box: fill-box;
+  transform-origin: bottom;
+  animation: grow-y 650ms var(--ease-out) both;
+}

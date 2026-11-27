@@ -34,6 +34,15 @@ Estado em 2026-11-27. Produção: https://miu-controle.miu-api.workers.dev (push
   - fila presa à conta que lançou; sair da conta apaga cache e fila;
   - verificado de ponta a ponta com Playwright: internet caindo com o app aberto e app aberto já
     offline.
+- **Movimento e fluidez (M1 + M2):**
+  - safe area no topo do iPhone instalado;
+  - View Transitions na troca de tela;
+  - loaders que esperam os dados (`lib/loaders.ts`), com skeletons do mesmo formato da tela;
+  - painéis com entrada e saída;
+  - números que contam (`components/animated-number.tsx`);
+  - gráficos que se desenham, barras que crescem, cards em sequência e pílula deslizante no
+    segmentado;
+  - tokens e keyframes em `styles.css`; movimento reduzido desliga tudo.
 
 ## Próximos passos
 

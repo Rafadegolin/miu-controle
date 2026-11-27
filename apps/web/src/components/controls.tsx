@@ -1,5 +1,5 @@
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import type { ReactNode } from "react";
+import { type ReactNode, useLayoutEffect, useRef, useState } from "react";
 import { cn } from "@/lib/cn";
 import { monthLabel } from "@/lib/format";
 
@@ -15,21 +15,41 @@ export function Segmented<T extends string>({
   onChange: (v: T) => void;
   label: string;
 }) {
+  // A pílula da opção ativa é um fundo só, que desliza até o botão escolhido.
+  const box = useRef<HTMLFieldSetElement>(null);
+  const [pill, setPill] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
+  // O rótulo ativo muda a largura (ex.: "Transferência" vira "Pagar fatura"): remede quando ele muda.
+  const activeLabel = options.find((o) => o.value === value)?.label;
+  useLayoutEffect(() => {
+    const el = box.current?.querySelector<HTMLElement>(`[data-value="${CSS.escape(value)}"]`);
+    if (!el || !activeLabel) return setPill(null);
+    setPill({ x: el.offsetLeft, y: el.offsetTop, w: el.offsetWidth, h: el.offsetHeight });
+  }, [value, activeLabel]);
+
   return (
-    <fieldset className="inline-flex w-fit flex-wrap gap-0.5 rounded-[11px] border border-line bg-surface-2 p-[3px]">
+    <fieldset
+      ref={box}
+      className="relative inline-flex w-fit flex-wrap gap-0.5 rounded-[11px] border border-line bg-surface-2 p-[3px]"
+    >
       <legend className="sr-only">{label}</legend>
+      {pill ? (
+        <span
+          aria-hidden
+          className="absolute top-0 left-0 rounded-lg border border-line bg-surface shadow-sm transition-[transform,width,height] duration-300 ease-[var(--ease-out)]"
+          style={{ width: pill.w, height: pill.h, transform: `translate(${pill.x}px, ${pill.y}px)` }}
+        />
+      ) : null}
       {options.map((o) => (
         <button
           key={o.value}
           type="button"
+          data-value={o.value}
           aria-pressed={value === o.value}
           disabled={o.disabled}
           onClick={() => onChange(o.value)}
           className={cn(
-            "h-8 rounded-lg border px-3 text-sm font-medium transition disabled:opacity-40",
-            value === o.value
-              ? "border-line bg-surface text-fg shadow-sm"
-              : "border-transparent text-muted hover:text-fg",
+            "relative h-8 rounded-lg border border-transparent px-3 text-sm font-medium transition-colors duration-200 disabled:opacity-40",
+            value === o.value ? "text-fg" : "text-muted hover:text-fg",
           )}
         >
           {o.label}
