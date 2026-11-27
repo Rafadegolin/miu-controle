@@ -5,6 +5,7 @@ import { LogOut, Monitor, Moon, Smartphone, Sun } from "lucide-react";
 import { type FormEvent, useState } from "react";
 import { AlertsCard, DeleteAccountCard } from "@/components/account-danger";
 import { CategoriesManager } from "@/components/categories-manager";
+import { PushCard } from "@/components/push-card";
 import { Alert, Button, Card, Field, Input } from "@/components/ui";
 import { authClient, authErrorMessage } from "@/lib/auth-client";
 import { cn } from "@/lib/cn";
@@ -23,6 +24,7 @@ function Configuracoes() {
       <Perfil />
       <Senha />
       <Aparencia />
+      <PushCard />
       <AlertsCard />
       <CategoriesManager />
       <Sessoes />

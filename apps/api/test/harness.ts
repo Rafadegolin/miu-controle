@@ -3,6 +3,7 @@ import { createTestDb } from "@miu/db/testing";
 import { createApp } from "../src/app";
 import type { Bindings } from "../src/env";
 import type { Email, Mailer } from "../src/lib/mailer";
+import type { PushMessage, PushSender } from "../src/lib/web-push";
 
 export const APP_URL = "http://localhost:5173";
 
@@ -18,7 +19,19 @@ export async function setup(envOverrides: Partial<Bindings> = {}) {
       outbox.push(email);
     },
   };
-  const app = createApp({ openDb: () => ({ db, close: async () => {} }), mailer: () => mailer });
+  // Push falso: guarda o que seria enviado; `pushStatus.value` simula a resposta do serviço de push.
+  const pushed: { endpoint: string; message: PushMessage }[] = [];
+  const pushStatus = { value: 201 };
+  const push: PushSender = async (sub, message) => {
+    pushed.push({ endpoint: sub.endpoint, message });
+    const status = pushStatus.value;
+    return { ok: status < 300, status, gone: status === 404 || status === 410 };
+  };
+  const app = createApp({
+    openDb: () => ({ db, close: async () => {} }),
+    mailer: () => mailer,
+    push: () => push,
+  });
   const env: Bindings = {
     APP_ENV: "test",
     APP_URL,
@@ -39,7 +52,7 @@ export async function setup(envOverrides: Partial<Bindings> = {}) {
     return app.request(`${APP_URL}${path}`, { ...init, headers, body }, env);
   };
 
-  return { app, db: db as Db, env, outbox, req, close };
+  return { app, db: db as Db, env, outbox, req, close, push, pushed, pushStatus };
 }
 
 /** Junta os Set-Cookie de uma resposta num header Cookie. */

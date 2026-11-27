@@ -30,7 +30,8 @@ Controle financeiro pessoal. Monorepo pnpm + Turborepo + Biome, rodando num úni
 - Cabeçalhos da SPA (CSP etc.) ficam em `apps/web/public/_headers` (os estáticos não passam pelo Hono). Domínio externo novo (script, fonte, iframe) precisa entrar na CSP de lá.
 - Nada de script inline no `index.html` (a CSP não permite): use arquivo em `apps/web/public`.
 - Exportação CSV neutraliza fórmulas (`csvText` em `apps/api/src/routes/imports.ts`); todo texto livre exportado passa por ela.
-- Rotina diária (Cron Trigger, `apps/api/src/index.ts`): recorrências e avisos por e-mail. Avisos são idempotentes via `sent_alerts`.
+- Rotinas (Cron Triggers, `apps/api/src/index.ts`): às 8h (11:00 UTC) recorrências, CDI, rendimentos e avisos por e-mail e push; às 20h (23:00 UTC) o lembrete opcional. Avisos são idempotentes via `sent_alerts` (push usa a chave `push:<aviso>`, independente do e-mail).
+- Push (Web Push sem dependência, `apps/api/src/lib/web-push.ts`): chave pública VAPID em `vars` do `wrangler.jsonc`, privada no secret `VAPID_PRIVATE_KEY` (JWK). Em dev, um par próprio no `apps/api/.env`. O service worker importa `apps/web/public/push-sw.js`. Trocar as chaves exige que cada aparelho ative de novo.
 - Ícones do PWA: `node apps/web/scripts/generate-icons.mjs` (desenhados a partir do logo, sem dependências).
 
 ## Regras

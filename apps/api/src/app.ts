@@ -15,6 +15,7 @@ import { health } from "./routes/health";
 import { exportRoutes, importRoutes } from "./routes/imports";
 import { insightsRoutes } from "./routes/insights";
 import { me } from "./routes/me";
+import { pushRoutes } from "./routes/push";
 import { recurringRoutes } from "./routes/recurring";
 import { transactionsRoutes } from "./routes/transactions";
 
@@ -44,7 +45,8 @@ export function createApp(deps: Deps = defaultDeps) {
     .route("/reports", reportsRoutes)
     .route("/import", importRoutes)
     .route("/export", exportRoutes)
-    .route("/insights", insightsRoutes);
+    .route("/insights", insightsRoutes)
+    .route("/push", pushRoutes);
 
   app.notFound(notFound);
   app.onError(onError);

@@ -4,11 +4,14 @@ import type { App, Bindings } from "../env";
 import { createAuth } from "../lib/auth";
 import { HttpError } from "../lib/errors";
 import { type Mailer, mailerFor } from "../lib/mailer";
+import { pushSenderFor } from "../lib/push";
+import type { PushSender } from "../lib/web-push";
 
 export type Deps = {
   /** Abre a conexão do banco da request. Em produção: postgres.js via Hyperdrive. */
   openDb: (env: Bindings) => { db: Db; close: () => Promise<void> };
   mailer: (env: Bindings) => Mailer;
+  push: (env: Bindings) => PushSender | null;
 };
 
 export const defaultDeps: Deps = {
@@ -20,6 +23,7 @@ export const defaultDeps: Deps = {
     });
   },
   mailer: mailerFor,
+  push: pushSenderFor,
 };
 
 /**
@@ -45,6 +49,7 @@ export const contextMiddleware = (deps: Deps) =>
     let auth: ReturnType<typeof createAuth> | undefined;
 
     c.set("db", db);
+    c.set("push", () => deps.push(c.env));
     c.set("auth", () => {
       auth ??= createAuth({ env: c.env, db: db(), mailer: deps.mailer(c.env), defer });
       return auth;

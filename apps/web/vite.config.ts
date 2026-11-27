@@ -44,6 +44,8 @@ export default defineConfig({
         // Logos de bancos e bandeiras: só as que aparecem na tela, guardadas sob demanda.
         globIgnores: ["bancos/**", "bandeiras/**"],
         navigateFallback: "/index.html",
+        // Notificações push (public/push-sw.js): recebe e abre a tela do aviso.
+        importScripts: ["/push-sw.js"],
         navigateFallbackDenylist: [/^\/api\//],
         cleanupOutdatedCaches: true,
         runtimeCaching: [

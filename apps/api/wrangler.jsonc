@@ -19,7 +19,7 @@
   "observability": { "enabled": true },
 
   // Todo dia às 06:00 de Brasília (09:00 UTC): recorrências e lançamentos automáticos.
-  "triggers": { "crons": ["0 9 * * *"] },
+  "triggers": { "crons": ["0 11 * * *", "0 23 * * *"] },
 
   "version_metadata": { "binding": "CF_VERSION_METADATA" },
 
@@ -43,6 +43,8 @@
 
   "vars": {
     "APP_ENV": "production",
-    "APP_URL": "https://miu-controle.miu-api.workers.dev"
+    "APP_URL": "https://miu-controle.miu-api.workers.dev",
+    // Web Push: chave PÚBLICA do VAPID (a privada é o secret VAPID_PRIVATE_KEY).
+    "VAPID_PUBLIC_KEY": "BA858ahP7biXqcKQc_gBmauO7UCP0QaEpy8Lm6KGXB7x5XlCjs7VHnzVO5QuTT3xTjE0CXpk-n5OZgTtvV9w6oQ"
   }
 }

@@ -6,4 +6,5 @@ export * from "./import";
 export * from "./institutions";
 export * from "./me";
 export * from "./planning";
+export * from "./push";
 export * from "./recurring";

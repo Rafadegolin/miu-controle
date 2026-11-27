@@ -14,5 +14,7 @@
 # O service worker e o HTML precisam ser revalidados para as atualizações chegarem.
 /sw.js
   Cache-Control: no-cache
+/push-sw.js
+  Cache-Control: no-cache
 /index.html
   Cache-Control: no-cache

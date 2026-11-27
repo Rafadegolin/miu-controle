@@ -1,5 +1,6 @@
 import type { Db } from "@miu/db";
 import type { Auth } from "./lib/auth";
+import type { PushSender } from "./lib/web-push";
 
 /*
  * Tipos estruturais (sem depender dos globais do @cloudflare/workers-types) para que o
@@ -23,6 +24,9 @@ export type Bindings = {
   RESEND_API_KEY?: string;
   GOOGLE_CLIENT_ID?: string;
   GOOGLE_CLIENT_SECRET?: string;
+  /** Web Push: chave pública (var no wrangler.jsonc) e privada em JWK (secret). */
+  VAPID_PUBLIC_KEY?: string;
+  VAPID_PRIVATE_KEY?: string;
 };
 
 export type SessionUser = { id: string; email: string; name: string; emailVerified: boolean };
@@ -32,6 +36,8 @@ export type Variables = {
   db: () => Db;
   /** Instância do Better Auth da request. */
   auth: () => Auth;
+  /** Envio de push; null quando as chaves VAPID não estão configuradas. */
+  push: () => PushSender | null;
   /** Preenchido por `requireUser`. */
   user: SessionUser;
 };

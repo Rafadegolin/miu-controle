@@ -72,9 +72,18 @@ Estado em 2026-11-27. Produção: https://miu-controle.miu-api.workers.dev (push
     ou recorrência de transferência para a caixinha;
   - passo "Seu futuro" no Resumo do mês, com a recomendação do `futureTip`.
 
+- **Notificações push** (2026-11-28):
+  - Web Push próprio (RFC 8291/8292 com WebCrypto, conferido contra a `http_ece` e com envio real pelo
+    serviço de push da Microsoft); tabela `push_subscriptions` e preferências `push_alerts`/`push_reminder`;
+  - avisos de fatura e orçamento também por push (canal independente do e-mail no `sent_alerts`);
+  - lembrete opcional às 20h ("Lançou tudo hoje?") só nos dias sem lançamento;
+  - Configurações → "Notificações no celular": ativar neste aparelho, **enviar notificação de teste**,
+    desativar, interruptores e lista de aparelhos; no iPhone, passo a passo para instalar o app.
+
 ## Próximos passos
 
-O plano F1–F4 está completo. Fora dele, ainda pendentes: e-mail pelo Resend e domínio próprio.
+O plano F1–F4 e o push estão prontos. Pendentes: e-mail pelo Resend (a confirmação de conta e os avisos por
+e-mail hoje só vão para o log) e domínio próprio.
 
 ### R3. A definir
 
@@ -82,7 +91,7 @@ Os atalhos do ícone, que eram o item 3 aprovado, já entraram na R1. Eles só a
 não oferece atalhos de manifest para apps instalados pelo Safari. A opção "abrir o app já no novo
 lançamento" foi oferecida como alternativa no iPhone e recusada. Candidatos para a R3:
 
-- lembrete à noite, opcional ("Lançou tudo hoje?"), por e-mail ou notificação;
+- ~~lembrete à noite, opcional ("Lançou tudo hoje?")~~: entrou com o push;
 - sugerir o banco da conta pelo código do banco no OFX importado.
 
 ## Pendências fora do roadmap

@@ -12,6 +12,8 @@ export const updateMeSchema = z
       .optional(),
     timezone: z.string().min(1).max(64).optional(),
     emailAlerts: z.boolean().optional(),
+    pushAlerts: z.boolean().optional(),
+    pushReminder: z.boolean().optional(),
     monthlySpendingLimitCents: z
       .number()
       .int()
@@ -35,6 +37,8 @@ export type Me = {
     monthlyIncomeCents: number | null;
     onboardingCompleted: boolean;
     emailAlerts: boolean;
+    pushAlerts: boolean;
+    pushReminder: boolean;
     monthlySpendingLimitCents: number | null;
   };
 };

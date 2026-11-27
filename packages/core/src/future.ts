@@ -101,7 +101,6 @@ export function projectFuture(input: FutureInput, scenarios: Scenario[] = []): F
   const monthIndex = new Map(input.months.map((m, i) => [m.month, i]));
   const fromMonth = (start: YearMonth) => {
     const first = input.months[0]?.month ?? start;
-    // biome-ignore lint/complexity/useMathMinMax: meses em texto ISO; Math.max não compara strings
     const s = start < first ? first : start;
     return monthIndex.get(s) ?? n;
   };
