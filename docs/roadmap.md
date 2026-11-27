@@ -82,8 +82,22 @@ Estado em 2026-11-27. Produção: https://miu-controle.miu-api.workers.dev (push
 
 ## Próximos passos
 
-O plano F1–F4 e o push estão prontos. Pendentes: e-mail pelo Resend (a confirmação de conta e os avisos por
-e-mail hoje só vão para o log) e domínio próprio.
+O plano F1–F4 e o push estão prontos (push confirmado no iPhone em 2026-11-28; a Apple recusa o cabeçalho
+`Topic`, por isso ele não é enviado). Agora é fase de **uso real por 2–3 semanas**, anotando o que irrita ou
+falta, antes de novas funcionalidades.
+
+Antes de confiar o dinheiro ao app (segurança, nesta ordem):
+
+1. **Resend + domínio próprio.** Sem isso não há recuperação de senha (o e-mail de redefinição só vai para o
+   log), nem confirmação de conta ou avisos por e-mail. O Resend exige domínio verificado para enviar a
+   qualquer endereço. Falta o usuário escolher e comprar o domínio.
+2. **Erros de produção visíveis:** ligar o registro de logs do Workers (`observability` no `wrangler.jsonc`)
+   e revisar o painel.
+3. **CPU do login:** o PBKDF2 gasta ~14 ms de CPU e o plano grátis permite 10 ms por request. Medir em
+   produção e ajustar se houver recusas.
+
+Ideias maiores, depois do uso real: medir e enxugar o carregamento no 4G; conta compartilhada (casal ou
+família); Open Finance (sincronizar com o banco, com custo mensal de um intermediário).
 
 ### R3. A definir
 
